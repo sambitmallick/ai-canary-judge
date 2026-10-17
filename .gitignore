@@ -1,0 +1,4 @@
+node_modules/
+shop.tar
+__pycache__/
+runs/

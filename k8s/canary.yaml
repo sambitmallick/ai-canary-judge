@@ -1,0 +1,17 @@
+# The canary: same image, VERSION=1.1, and a FAULT chosen per scenario (${FAULT} is filled in by the run script).
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: shop-canary }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: shop, track: canary } }
+  template:
+    metadata: { labels: { app: shop, track: canary } }
+    spec:
+      containers:
+        - name: shop
+          image: localhost/shop:1.0
+          imagePullPolicy: Never
+          env: [{ name: VERSION, value: "1.1" }, { name: FAULT, value: "${FAULT}" }]
+          readinessProbe: { httpGet: { path: /healthz, port: 8080 }, periodSeconds: 2 }
+          resources: { requests: { cpu: 50m, memory: 48Mi }, limits: { memory: 96Mi } }

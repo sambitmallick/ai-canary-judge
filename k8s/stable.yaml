@@ -1,0 +1,24 @@
+# 3 stable pods + 1 canary pod behind ONE Service: kube-proxy sends the canary about 25% of traffic.
+apiVersion: v1
+kind: Service
+metadata: { name: shop }
+spec:
+  selector: { app: shop }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: shop-stable }
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: shop, track: stable } }
+  template:
+    metadata: { labels: { app: shop, track: stable } }
+    spec:
+      containers:
+        - name: shop
+          image: localhost/shop:1.0
+          imagePullPolicy: Never
+          env: [{ name: VERSION, value: "1.0" }, { name: FAULT, value: "none" }]
+          readinessProbe: { httpGet: { path: /healthz, port: 8080 }, periodSeconds: 2 }
+          resources: { requests: { cpu: 50m, memory: 48Mi }, limits: { memory: 96Mi } }

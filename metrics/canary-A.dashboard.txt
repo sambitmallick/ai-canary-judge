@@ -1,0 +1,21 @@
+CANARY A: stable = version 1.0 (3 pods), canary = version 1.1 (1 pod). 120 s load test, 80 req/s, 9819 requests.
+
+                         reqs   5xx    err%  p50ms  p95ms  p99ms
+stable (all)             7343     0   0.00%     34     94    104
+canary (all)             2476     0   0.00%     62    177    218
+
+stable /browse           3616     0   0.00%     22     27     29
+canary /browse           1181     0   0.00%     27    150    163
+
+stable /search           2232     0   0.00%     47     59     61
+canary /search            781     0   0.00%     56    177    195
+
+stable /checkout         1495     0   0.00%     82    103    107
+canary /checkout          514     0   0.00%     97    215    236
+
+over time (canary vs stable):
+window      canary p95  stable p95  canary 5xx  stable 5xx
+0-30s              210          93           0           0
+30-60s             130          94           0           0
+60-90s              95          95           0           0
+90-120s             94          94           0           0

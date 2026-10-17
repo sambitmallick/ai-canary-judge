@@ -1,0 +1,15 @@
+# The load test: a Job inside the cluster, 80 requests/s for 120 s, one JSON line per request in its log.
+apiVersion: batch/v1
+kind: Job
+metadata: { name: loadgen }
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loadgen
+          image: localhost/shop:1.0
+          imagePullPolicy: Never
+          command: ["node", "loadgen.js"]
+          env: [{ name: RATE, value: "80" }, { name: SECONDS, value: "120" }]
