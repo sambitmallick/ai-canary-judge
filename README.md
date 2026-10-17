@@ -83,4 +83,4 @@ One second, the same answer every time, no model.
 5. **Validate on data you didn't tune on.** v1 failed a clean canary there too.
 
 ---
-🎬 Full walkthrough: **[DevOps Autopilot](https://www.youtube.com/@DevOpsAutopilot)**
+🎬 Full walkthrough: **[the video](https://youtu.be/BZKz2WRTyFg)** · channel: **[DevOps Autopilot](https://www.youtube.com/@DevOpsAutopilot)**
