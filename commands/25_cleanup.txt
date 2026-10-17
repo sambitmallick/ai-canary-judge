@@ -1,0 +1,10 @@
+$ kind delete cluster --name canary && kind get clusters && rm -f shop.tar
+using podman due to KIND_EXPERIMENTAL_PROVIDER
+enabling experimental podman provider
+Deleting cluster "canary" ...
+Deleted nodes: ["canary-control-plane"]
+using podman due to KIND_EXPERIMENTAL_PROVIDER
+enabling experimental podman provider
+nightshift
+upgrade
+[exit 0, 14s]

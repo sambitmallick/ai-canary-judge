@@ -1,0 +1,8 @@
+agent: canary judge   canary = D   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/D-dashboard-2/decision.json')
+   thought: Evidence review: canary has 0 5xx across 2384 requests (same as stable, 0/7404). p50 and p95 are at parity on every endpoint (/browse 22/27 vs 22/27, /search 47
+   result : wrote review/D-dashboard-2/decision.json
+── step 2 ── done(summary='Decision written to review/D-dashboard-2/decision.json at st')
+   thought: The decision file was already written successfully at step 1 with decision PROMOTE. My step-2 attempt to rewrite it with expanded reasoning failed because write
+
+🟡 handing back to a human after 2 steps — decision: PROMOTE

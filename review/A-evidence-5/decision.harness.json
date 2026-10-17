@@ -1,0 +1,30 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "There were zero 5xx and zero non-200 responses across all 9819 requests, on both canary (1.1) and stable (1.0).",
+   "verified": true,
+   "output": "5xx canary=0 stable=0 total_reqs=9819 non200=0"
+  },
+  {
+   "claim": "The canary carried a real share of traffic: 2476 of 9819 requests, 25.2%.",
+   "verified": true,
+   "output": "TRAFFIC canary=2476 stable=7343 total=9819 canary_share=25.2%"
+  },
+  {
+   "claim": "Over the whole 120 s test the canary p95 was 177 ms versus 94 ms for stable (about 1.9x).",
+   "verified": true,
+   "output": "AGG canary_p95=177 stable_p95=94 ratio=1.88"
+  },
+  {
+   "claim": "The latency gap is confined to the start of the test: per-30s-window canary/stable p95 goes from 210/93 ms in 0-30s to 94/94 ms in 90-120s.",
+   "verified": true,
+   "output": "WINDOWS canary_p95/stable_p95 210/93 130/94 95/95 94/94\nDECAY WIN0=210/93 WIN3=94/94"
+  },
+  {
+   "claim": "In the last 60 s of the test the canary served at least 1200 requests and its p95 was within 5 ms of stable overall and on every path, including /checkout.",
+   "verified": true,
+   "output": "LAST60 n_canary=1261 overall_canary/stable_p95 94/95 | /browse 27/27 | /search 59/59 | /checkout 103/104\nLAST60_PARITY_AND_N=true"
+  }
+ ]
+}

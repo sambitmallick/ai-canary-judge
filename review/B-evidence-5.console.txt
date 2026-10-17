@@ -1,0 +1,38 @@
+agent: canary judge   canary = B   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='const c5=canary.filter(r=>r.status>=500), s5=stable.filter(r')
+   thought: I need to verify the dashboard's claim: canary has 10 5xx, all on /checkout (2.07% error rate), while stable has 0. Latency looks identical. Key question: are t
+   result : canary 5xx total 10 stable 5xx total 0
+            canary 5xx by path {"/checkout":10}
+            canary 5xx timestamps [13,45,50,59,71,78,79,94,99,115]
+            canary /checkout n 483 5xx 10 err% 2.07
+            stable /checkout n 1455 5xx 0
+            canary p95 323 stable p95 344
+            canary status codes {"200":2445,"500":10}
+── step 2 ── run_query(code="const ms=a=>a.map(r=>r.ms);\nprint('try p=95 ->','canary',pct")
+   thought: Step 1 established: 10 canary 5xx, all on /checkout, spread from t=13s to t=115s, stable has 0. The printed "p95 323 / 344" looks like a pct() convention mistak
+   result : try p=95 -> canary 323 stable 344
+            try p=0.95 -> canary 96 stable 94
+            checkout p50/p95 canary 323 323 stable 344 344
+            window 0-30s canary5xx 1 stable5xx 0 canary_n 602
+            window 30-60s canary5xx 3 stable5xx 0 canary_n 624
+            window 60-90s canary5xx 3 stable5xx 0 canary_n 604
+            window 90-120s canary5xx 3 stable5xx 0 canary_n 625
+            canary 5xx count in each half: first60 4 last60 6
+── step 3 ── write_file(path='review/B-evidence-5/decision.json')
+   thought: Evidence is conclusive: 10 canary 5xx vs 0 stable, all on /checkout (2.07% of 483), spread evenly over all four 30s windows (1,3,3,3) so not a startup blip, and
+   result : wrote review/B-evidence-5/decision.json
+── step 4 ── run_query(code='const is5=r=>r.status>=500;\nconst c5=canary.filter(is5), s5=')
+   thought: I already wrote a decision file, but I can't read it back and I need certainty that every claim query prints exactly the text I put in "expect". Safest path: pr
+   result : CLAIM1 canary5xx=10 stable5xx=0
+            CLAIM2 canary5xx_by_path={"/checkout":10}
+            CLAIM3 checkout canary n=483 5xx=10 err%=2.07 | stable n=1455 5xx=0
+            CLAIM4 p95 canary=96 stable=94 p99 canary=105 stable=104
+            CLAIM5 canary5xx_per_window 0-30s:1 30-60s:3 60-90s:3 90-120s:3
+            CLAIM6 first_canary_5xx_t=13.26 last_canary_5xx_t=115.28
+── step 5 ── write_file(path='review/B-evidence-5/decision.json')
+   thought: Step 4 verified the exact printed strings for each claim (including that pct() takes a fraction, so p95 must use 0.95). Now I rewrite decision.json so every fac
+   result : wrote review/B-evidence-5/decision.json
+── step 6 ── done(summary='Decision: ROLLBACK, written to review/B-evidence-5/decision.')
+   thought: The decision file is written (ROLLBACK) and I already re-ran every claim query in step 4, confirming each printed output contains its expected text (canary5xx=1
+
+🟡 handing back to a human after 6 steps — decision: ROLLBACK

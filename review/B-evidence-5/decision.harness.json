@@ -1,0 +1,30 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "The canary returned 10 5xx responses; the stable pods returned 0.",
+   "verified": true,
+   "output": "canary5xx=10 stable5xx=0"
+  },
+  {
+   "claim": "All 10 canary 5xx responses were on the /checkout path.",
+   "verified": true,
+   "output": "canary5xx_by_path={\"/checkout\":10}"
+  },
+  {
+   "claim": "On /checkout the canary served 483 requests with 10 5xx (2.07%), while stable served 1455 requests with 0 5xx.",
+   "verified": true,
+   "output": "checkout canary n=483 5xx=10 err%=2.07 | stable n=1455 5xx=0"
+  },
+  {
+   "claim": "Overall latency is comparable: canary p95 96 ms vs stable p95 94 ms.",
+   "verified": true,
+   "output": "p95 canary=96 stable=94"
+  },
+  {
+   "claim": "Canary 5xx occur in every 30 s window of the test: 1, 3, 3, 3.",
+   "verified": true,
+   "output": "canary5xx_per_window 0-30s:1 30-60s:3 60-90s:3 90-120s:3"
+  }
+ ]
+}

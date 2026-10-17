@@ -1,0 +1,11 @@
+agent: canary judge   canary = A   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/A-dashboard-1/decision.json')
+   thought: The aggregate canary numbers look bad (p95 177 vs 94, p50 62 vs 34, every route slower), but the over-time breakdown is decisive: canary p95 goes 210 -> 130 -> 
+   result : wrote review/A-dashboard-1/decision.json
+── step 2 ── write_file(path='review/A-dashboard-1/decision.json')
+   thought: The decision file was written in step 1 but the harness log shows its content truncated, so I cannot confirm the JSON is complete and valid. I have no read tool
+   result : wrote review/A-dashboard-1/decision.json
+── step 3 ── done(summary='Decision written to review/A-dashboard-1/decision.json: PROM')
+   thought: The decision file has already been written (twice) with PROMOTE and the evidence-based reasoning. Nothing further to analyze: the dashboard shows 0 5xx on both 
+
+🟡 handing back to a human after 3 steps — decision: PROMOTE

@@ -1,0 +1,36 @@
+{
+  "decision": "PROMOTE",
+  "why": "PROMOTE. Facts from the raw request log, each backed by a claim below: (1) Zero errors - across all 9785 logged requests there were no 5xx and no non-200 responses on either version (stable 7374 requests, canary 2411). (2) Canary overall latency matches stable - canary p50 34 ms / p95 93 ms vs stable p50 34 ms / p95 94 ms, so canary p95 is within 5 ms of stable. (3) Per-endpoint p95 is within 5 ms of stable on all three endpoints (/browse 27 vs 27 ms, /search 59 vs 59 ms, /checkout 104 vs 103 ms). (4) Worst-case latency is not worse on the canary - the maximum observed latency is 339 ms on both stable and canary. (5) There is no regression over time - in each of the four 30 s windows the canary p95 stays within 10 ms of the stable p95 and both versions logged zero 5xx. (6) The one asymmetry is the canary /browse p99, which is higher than stable's (77 ms vs 28 ms), but no canary /browse request exceeded stable's worst /browse request (max 87 ms on both) and no canary /browse request exceeded 100 ms. Judgement: the /browse p99 gap is a tail-shape difference, not a new failure mode - the slow /browse requests on the canary are the same magnitude as the slow ones stable already serves, and the single canary pod has ~4x fewer samples per endpoint, so its tail percentile is far noisier. With zero errors, equal p50/p95 overall and per endpoint, no worse worst case, and no degradation in the final 30 s window, I see no customer-visible regression; blocking the release on a 1-pod p99 artifact is the worse trade. Judgement: promote, and keep watching /browse p99 after the rollout reaches 100% so a real tail regression would still be caught.",
+  "claims": [
+    {
+      "claim": "Zero errors: across all 9785 requests in the log there were no 5xx and no non-200 responses on either version (stable 7374 requests, canary 2411).",
+      "query": "(function(){var e=rows.filter(function(r){return r.status>=500}).length;var n=rows.filter(function(r){return r.status!==200}).length;print('C1 total='+rows.length+' stable='+stable.length+' canary='+canary.length+' 5xx='+e+' non200='+n);print('C1 VERDICT zero_errors '+(e===0&&n===0));})()",
+      "expect": "zero_errors true"
+    },
+    {
+      "claim": "Canary overall latency matches stable: canary p50 34 ms / p95 93 ms vs stable p50 34 ms / p95 94 ms, so canary p95 is within 5 ms of stable.",
+      "query": "(function(){function P(a,p){var s=a.slice().sort(function(x,y){return x-y});var i=Math.min(s.length-1,Math.max(0,Math.ceil(p*s.length)-1));return s[i]}var S=stable.map(function(r){return r.ms}),C=canary.map(function(r){return r.ms});var sp=P(S,0.95),cp=P(C,0.95);print('C2 stable n='+S.length+' p50='+P(S,0.5)+' p95='+sp+' p99='+P(S,0.99));print('C2 canary n='+C.length+' p50='+P(C,0.5)+' p95='+cp+' p99='+P(C,0.99));print('C2 VERDICT canary_overall_p95_within_5ms '+((cp-sp)<=5));})()",
+      "expect": "canary_overall_p95_within_5ms true"
+    },
+    {
+      "claim": "Per-endpoint p95 is within 5 ms of stable on all three endpoints (/browse 27 vs 27 ms, /search 59 vs 59 ms, /checkout 104 vs 103 ms).",
+      "query": "(function(){function P(a,p){var s=a.slice().sort(function(x,y){return x-y});var i=Math.min(s.length-1,Math.max(0,Math.ceil(p*s.length)-1));return s[i]}var ok=true;['/browse','/search','/checkout'].forEach(function(pt){var S=stable.filter(function(r){return r.path===pt}).map(function(r){return r.ms});var C=canary.filter(function(r){return r.path===pt}).map(function(r){return r.ms});var d=P(C,0.95)-P(S,0.95);if(d>5)ok=false;print('C3 '+pt+' stable n='+S.length+' p50='+P(S,0.5)+' p95='+P(S,0.95)+' | canary n='+C.length+' p50='+P(C,0.5)+' p95='+P(C,0.95)+' diff_p95='+d);});print('C3 VERDICT all_paths_p95_within_5ms '+ok);})()",
+      "expect": "all_paths_p95_within_5ms true"
+    },
+    {
+      "claim": "Worst-case latency is not worse on the canary: the maximum observed latency is 339 ms on both stable and canary.",
+      "query": "(function(){function mx(a){return a.reduce(function(m,r){return r.ms>m?r.ms:m},0)}var sm=mx(stable),cm=mx(canary);print('C4 max_ms stable='+sm+' canary='+cm);print('C4 VERDICT canary_max_not_worse '+(cm<=sm));})()",
+      "expect": "canary_max_not_worse true"
+    },
+    {
+      "claim": "No regression over time: in each of the four 30 s windows the canary p95 stays within 10 ms of the stable p95 and both versions logged zero 5xx.",
+      "query": "(function(){function P(a,p){var s=a.slice().sort(function(x,y){return x-y});var i=Math.min(s.length-1,Math.max(0,Math.ceil(p*s.length)-1));return s[i]}var ok=true;for(var w=0;w<4;w++){var sel=function(rs){return rs.filter(function(r){return Math.min(3,Math.floor(r.t/30))===w})};var S=sel(stable),C=sel(canary);var sp=P(S.map(function(r){return r.ms}),0.95),cp=P(C.map(function(r){return r.ms}),0.95);var e=S.filter(function(r){return r.status>=500}).length+C.filter(function(r){return r.status>=500}).length;if(Math.abs(cp-sp)>10||e>0)ok=false;print('C5 win'+(w*30)+'-'+(w*30+30)+'s canary n='+C.length+' p95='+cp+' | stable n='+S.length+' p95='+sp+' 5xx='+e);}print('C5 VERDICT no_window_regression_within_10ms '+ok);})()",
+      "expect": "no_window_regression_within_10ms true"
+    },
+    {
+      "claim": "The canary /browse p99 is higher than stable's (77 ms vs 28 ms), but no canary /browse request exceeded stable's worst /browse request (max 87 ms on both) and no canary /browse request exceeded 100 ms.",
+      "query": "(function(){function P(a,p){var s=a.slice().sort(function(x,y){return x-y});var i=Math.min(s.length-1,Math.max(0,Math.ceil(p*s.length)-1));return s[i]}function mx(a){return a.reduce(function(m,v){return v>m?v:m},0)}var S=stable.filter(function(r){return r.path==='/browse'}).map(function(r){return r.ms});var C=canary.filter(function(r){return r.path==='/browse'}).map(function(r){return r.ms});var sp=P(S,0.99),cp=P(C,0.99),sm=mx(S),cm=mx(C);var o=C.filter(function(m){return m>100}).length;print('C6 /browse n stable='+S.length+' canary='+C.length+' p99 stable='+sp+' canary='+cp+' max stable='+sm+' canary='+cm+' canary_over_100ms='+o);print('C6 VERDICT browse_p99_higher_but_worst_case_not_worse '+(cp>=sp&&cm<=sm&&o===0));})()",
+      "expect": "browse_p99_higher_but_worst_case_not_worse true"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "decision": "ROLLBACK",
+  "why": "Canary 1.1 returned 10 HTTP 5xx, all of them on /checkout, while stable returned 0 5xx across 7359 requests. The canary /checkout error rate is 2.07% (10/483) versus 0.00% (0/1455) on stable. Those failures are spread across all four 30 s windows (1,3,3,3 per window). Latency is comparable between versions: canary p95 is 96 ms vs stable p95 94 ms. Judgement: the regression is not a warm-up blip and is not a performance problem -- it is a sustained, version-specific ~2% failure rate on the checkout path, which is directly customer- and revenue-visible, so blocking the release is the cheaper mistake.",
+  "claims": [
+    {
+      "claim": "Canary 1.1 returned 10 HTTP 5xx, all on /checkout, while stable returned 0 5xx across 7359 requests.",
+      "query": "const e=canary.filter(r=>r.status>=500); const se=stable.filter(r=>r.status>=500); print('canary 5xx total='+e.length+' paths='+[...new Set(e.map(r=>r.path))].join(',')+' stable 5xx total='+se.length+'/'+stable.length);",
+      "expect": "canary 5xx total=10 paths=/checkout stable 5xx total=0/7359"
+    },
+    {
+      "claim": "The canary /checkout error rate is 2.07% (10/483) versus 0.00% (0/1455) on stable.",
+      "query": "const cc=canary.filter(r=>r.path==='/checkout'), sc=stable.filter(r=>r.path==='/checkout'); const ce=cc.filter(r=>r.status>=500).length, se=sc.filter(r=>r.status>=500).length; print('canary /checkout '+ce+'/'+cc.length+'='+(100*ce/cc.length).toFixed(2)+'% stable /checkout '+se+'/'+sc.length+'='+(100*se/sc.length).toFixed(2)+'%');",
+      "expect": "canary /checkout 10/483=2.07% stable /checkout 0/1455=0.00%"
+    },
+    {
+      "claim": "The canary 5xx responses occur in all four 30 s windows of the test (1,3,3,3).",
+      "query": "const w=[0,0,0,0]; for(const r of canary){ if(r.status>=500) w[Math.min(3,Math.floor(r.t/30))]++; } print('canary 5xx per 30s window='+w.join(','));",
+      "expect": "canary 5xx per 30s window=1,3,3,3"
+    },
+    {
+      "claim": "Latency is comparable between versions: canary p95 is 96 ms vs stable p95 94 ms.",
+      "query": "function p95(a){const s=a.slice().sort((x,y)=>x-y); const i=Math.max(0,Math.ceil(0.95*s.length)-1); return s[i];} print('p95 canary='+p95(canary.map(r=>r.ms))+' stable='+p95(stable.map(r=>r.ms)));",
+      "expect": "p95 canary=96 stable=94"
+    }
+  ]
+}

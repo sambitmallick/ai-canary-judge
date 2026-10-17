@@ -1,0 +1,31 @@
+{
+  "decision": "ROLLBACK",
+  "why": "The canary (version 1.1) returned 10 5xx responses while the three stable pods (version 1.0) returned 0 (claim 1). All 10 canary 5xx were on /checkout (claim 2): the canary served 483 /checkout requests with 10 5xx = 2.07% errors, while stable served 1455 /checkout requests with 0 5xx (claim 3). Latency is not the issue - canary p95 is 96 ms vs stable 94 ms (claim 4). The canary 5xx are spread across all four 30 s windows, 1 / 3 / 3 / 3 (claim 5). Judgement: a ~2% failure rate on the revenue-critical checkout path, with a zero-error baseline on the same path at 3x the traffic, is directly customer-visible; because the failures continue through the final window instead of only at startup, this is judged to be a real regression in 1.1 rather than warm-up noise, so the safe call is ROLLBACK and fix /checkout before re-canarying.",
+  "claims": [
+    {
+      "claim": "The canary returned 10 5xx responses; the stable pods returned 0.",
+      "query": "const is5=r=>r.status>=500;\nprint('canary5xx='+canary.filter(is5).length+' stable5xx='+stable.filter(is5).length);",
+      "expect": "canary5xx=10 stable5xx=0"
+    },
+    {
+      "claim": "All 10 canary 5xx responses were on the /checkout path.",
+      "query": "const is5=r=>r.status>=500;\nconst by={};\ncanary.filter(is5).forEach(r=>{by[r.path]=(by[r.path]||0)+1;});\nprint('canary5xx_by_path='+JSON.stringify(by));",
+      "expect": "canary5xx_by_path={\"/checkout\":10}"
+    },
+    {
+      "claim": "On /checkout the canary served 483 requests with 10 5xx (2.07%), while stable served 1455 requests with 0 5xx.",
+      "query": "const co=a=>a.filter(r=>r.path==='/checkout');\nconst f=a=>a.filter(r=>r.status>=500).length;\nconst cc=co(canary), sc=co(stable);\nprint('checkout canary n='+cc.length+' 5xx='+f(cc)+' err%='+(100*f(cc)/cc.length).toFixed(2)+' | stable n='+sc.length+' 5xx='+f(sc));",
+      "expect": "checkout canary n=483 5xx=10 err%=2.07 | stable n=1455 5xx=0"
+    },
+    {
+      "claim": "Overall latency is comparable: canary p95 96 ms vs stable p95 94 ms.",
+      "query": "const ms=a=>a.map(r=>r.ms);\nprint('p95 canary='+pct(ms(canary),0.95)+' stable='+pct(ms(stable),0.95));",
+      "expect": "p95 canary=96 stable=94"
+    },
+    {
+      "claim": "Canary 5xx occur in every 30 s window of the test: 1, 3, 3, 3.",
+      "query": "let out='canary5xx_per_window';\nfor(let w=0;w<4;w++){const n=canary.filter(r=>r.t>=w*30&&r.t<(w+1)*30&&r.status>=500).length;out+=' '+(w*30)+'-'+((w+1)*30)+'s:'+n;}\nprint(out);",
+      "expect": "0-30s:1 30-60s:3 60-90s:3 90-120s:3"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "18 of 729 canary /search requests exceeded 200ms; 0 of 2273 stable /search requests did.",
+   "verified": true,
+   "output": "canary_slow=18/729 stable_slow=0/2273"
+  },
+  {
+   "claim": "The slow canary /search responses cluster at 633-656ms, against a canary /search median of 47ms and a stable /search maximum of 193ms.",
+   "verified": true,
+   "output": "slowMin=633 slowMax=656 canaryMedian=47 stableSearchMax=193"
+  },
+  {
+   "claim": "There are no failures anywhere in the test: 0 5xx, 0 non-200, and every slow canary /search request returned 200.",
+   "verified": true,
+   "output": "all5xx=0 allNon200=0 slowStatuses=200"
+  },
+  {
+   "claim": "The 18 slow canary /search requests span the whole 120s run, from t=3.2s to t=113.3s.",
+   "verified": true,
+   "output": "firstSlow=3.2 lastSlow=113.3 count=18"
+  },
+  {
+   "claim": "The regression is confined to /search: canary /browse had 0 requests over 200ms and canary /checkout had 1, while stable /checkout had 7.",
+   "verified": true,
+   "output": "canaryBrowseSlow=0 canaryCheckoutSlow=1 stableCheckoutSlow=7"
+  }
+ ]
+}

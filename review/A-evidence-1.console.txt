@@ -1,0 +1,79 @@
+agent: canary judge   canary = A   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code="const f=(a)=>a.map(r=>r.ms);\nprint('TOTAL rows', rows.length")
+   thought: The dashboard hints the canary's latency penalty decays over time (p95 210 -> 130 -> 95 -> 94) with zero 5xx, which looks like warmup rather than a regression. 
+   result : TOTAL rows 9819 stable 7343 canary 2476
+            5xx stable 0 5xx canary 0
+            non-200 stable 0 non-200 canary 0
+            --- p95 by 30s window ---
+            0-30s canary p95=317 stable p95=331 canary p99=317 canary5xx=0
+            30-60s canary p95=361 stable p95=327 canary p99=361 canary5xx=0
+            60-90s canary p95=325 stable p95=340 canary p99=325 canary5xx=0
+            90-120s canary p95=180 stable p95=322 canary p99=180 canary5xx=0
+            --- steady state t …
+── step 2 ── run_query(code='const ms=a=>a.map(r=>r.ms);\nconst n5=a=>a.filter(r=>r.status')
+   thought: My first query's percentiles looked broken (p50==p95==p99), which suggests pct() takes p as a fraction (0–1), not 0–100 — passing 95 clamped to the max. I need 
+   result : ERRORS canary5xx=0 stable5xx=0 canaryNon200=0 stableNon200=0
+            STATUS {"200":9819}
+            WIN 0-30 canary p95=210 stable p95=93 canary p99=235 n=612
+            WIN 30-60 canary p95=130 stable p95=94 canary p99=151 n=603
+            WIN 60-90 canary p95=95 stable p95=95 canary p99=105 n=642
+            WIN 90-120 canary p95=94 stable p95=94 canary p99=103 n=619
+            STEADY canary n=1261 p50=36 p95=94 p99=104
+            STEADY stable n=3651 p50=34 p95=95 p99 …
+── step 3 ── write_file(path='review/A-evidence-1/decision.json')
+   thought: Evidence from two queries is consistent and sufficient: zero 5xx/non-200 across all 9819 requests; canary latency elevated only in the first ~30-60 s (p95 210 v
+   result : wrote review/A-evidence-1/decision.json
+── step 4 ── write_file(path='review/A-evidence-1/decision.json')
+   thought: The file was written but I cannot read it back, and the harness rejects the file if any claim query output does not contain its "expect" string. To remove that 
+   result : wrote review/A-evidence-1/decision.json
+── step 5 ── write_file(path='review/A-evidence-1/decision.json')
+   thought: The file was written twice; to be safe I rewrite it one final time with claims whose exact printed strings I already observed in steps 1-2 (zero 5xx/non-200, re
+   result : wrote review/A-evidence-1/decision.json
+── step 6 ── run_query(code="// === claim 1 code ===\nprint('5xx stable=' + stable.filter(")
+   thought: I have written the decision file three times but cannot read it back, so I cannot be certain the "expect" strings exactly match what the queries print. The harn
+   result : 5xx stable=0 5xx canary=0
+            TOTALS all=9819 stable=7343 canary=2476
+            STEADY canary p50=325 p95=325 p99=325 | stable p50=340 p95=340 p99=340
+            WIN0-30 canary p95=317 stable p95=331
+            WIN90-120 canary p95=180 stable p95=322
+            STEADY /browse canary p95=85 stable p95=87
+            STEADY /search canary p95=195 stable p95=179
+            STEADY /checkout canary p95=325 stable p95=340
+            STATUS {"200":9819}
+── step 7 ── run_query(code='const ms=a=>a.map(r=>r.ms);\nconst win=(a,lo,hi)=>a.filter(r=')
+   thought: Before writing the final file I want to run the exact claim queries, in the exact print formats I will ship, so the "expect" strings are guaranteed to match byt
+   result : 5xx stable=0 canary=0
+            TOTAL 9819 stable 7343 canary 2476
+            STEADY canary p95=325 stable p95=340
+            W0-30 canary p95=317 stable p95=331
+            W60-90 canary p95=325 stable p95=340
+            W90-120 canary p95=180 stable p95=322
+            STEADY /search canary p99=195 stable p99=179
+            STEADY /checkout canary p99=325 stable p99=340
+── step 8 ── run_query(code='const ms=a=>a.map(r=>r.ms);\nconst win=(a,lo,hi)=>a.filter(r=')
+   thought: My two earlier helper styles disagreed (pct called with 95 vs 0.95), so before writing the final file I need the exact printed strings for the precise snippets 
+   result : C1 5xx stable=0 canary=0
+            C2 STATUS {"200":9819} total=9819 stable=7343 canary=2476
+            C3 W0-30 canary p95=317 stable p95=331
+            C4 W60-120 canary p95=325 stable p95=340 canary p99=325 stable p99=340
+            C5 checkout t>=60 canary p95=325 stable p95=340
+            C6 browse t>=60 canary p95=85 stable p95=87
+            C7 search t>=60 canary p95=195 stable p95=179
+── step 9 ── run_query(code='const srt=a=>a.map(r=>r.ms).sort((x,y)=>x-y);\nconst man=(a,p')
+   thought: My earlier queries in steps 1/6/7/8 used a percentile call that returned the MAX (325/340 match the MAX line from step 2), while step 2's numbers matched the da
+   result : CHK pct95=361 pct0.95=177 man95=177 max=361
+            C1 5xx stable=0 canary=0
+            C2 total=9819 stable=7343 canary=2476 non200=0
+            C3 W0-30 canary p95=210 stable p95=93
+            C4 W60-120 canary p95=94 stable p95=95 canary p99=104 stable p99=104
+            C5 checkout60 canary p95=103 stable p95=104
+            C6 overall canary p95=177 stable p95=94
+            C7 browse60 canary p95=27 stable p95=27
+            C8 search60 canary p95=59 stable p95=59
+── step 10 ── write_file(path='review/A-evidence-1/decision.json')
+   thought: Step 9 settled the one thing that had been tripping me up: pct() takes a fraction (pct(x,0.95)=177 matches my manual 95th percentile; pct(x,95) returns garbage 
+   result : wrote review/A-evidence-1/decision.json
+── step 11 ── done(summary='Decision written to review/A-evidence-1/decision.json: PROMO')
+   thought: The decision file was written at step 10 using exactly the queries I verified in step 9 (after discovering pct() takes a fraction, e.g. pct(ms,0.95), which repr
+
+🟡 handing back to a human after 11 steps — decision: PROMOTE

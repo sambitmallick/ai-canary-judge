@@ -1,0 +1,41 @@
+{
+  "decision": "ROLLBACK",
+  "why": "ROLLBACK. The canary carries a silent tail-latency regression on /search. Facts, each backed by a claim query below: 18 of 729 canary /search requests exceeded 200 ms (2.47%), while 0 of 2273 stable /search requests did [claim 1]; those slow canary requests ranged 633-656 ms, while the slowest stable /search request was 193 ms [claim 2]; canary /search p99 is at least 8x stable's p99 while the two p50s differ by no more than 5 ms, so this is a tail and not an overall shift [claim 3]; the slow requests all returned HTTP 200 and both versions had 0 5xx [claim 4]; the slow requests occur in all four 30 s windows (7,2,5,4) [claim 5]; canary p99 on /browse and /checkout is not worse than stable (within 5 ms) [claim 6]; the canary served 2384 requests against stable's 7404 [claim 7]. Judgement: p95 by definition discards the slowest 5% of requests, so the matching p95 values and the 0.00% error rate on the dashboard cannot see a 2.5% tail - the panels shown are green for a regression that is really there. Judgement: ~650 ms on a search request is user-visible, and because it persists evenly across the whole 120 s it is not a warm-up or JIT artifact; at 100% traffic roughly four times as many requests would hit it. Judgement: the blast radius is confined to /search, which makes this a findable, fixable bug in the new search path - rolling back costs one release cycle, promoting ships the tail to every customer. ROLLBACK.",
+  "claims": [
+    {
+      "claim": "18 of 729 canary /search requests took more than 200 ms (2.47%), while 0 of 2273 stable /search requests did.",
+      "query": "const cs=canary.filter(r=>r.path=='/search');\nconst ss=stable.filter(r=>r.path=='/search');\nconst cslow=cs.filter(r=>r.ms>200);\nconst sslow=ss.filter(r=>r.ms>200);\nprint('SLOW c='+cslow.length+'/'+cs.length+' s='+sslow.length+'/'+ss.length+' SLOW_PCT='+(100*cslow.length/cs.length).toFixed(2)+'%');",
+      "expect": "SLOW c=18/729 s=0/2273 SLOW_PCT=2.47%"
+    },
+    {
+      "claim": "The slow canary /search requests ranged 633-656 ms, while the slowest stable /search request in the whole test was 193 ms.",
+      "query": "const cs=canary.filter(r=>r.path=='/search');\nconst ss=stable.filter(r=>r.path=='/search');\nconst sm=cs.filter(r=>r.ms>200).map(r=>r.ms).sort((a,b)=>a-b);\nconst smax=ss.map(r=>r.ms).sort((a,b)=>a-b).pop();\nprint('CANARY_SLOW_RANGE='+sm[0]+'-'+sm[sm.length-1]+' STABLE_SEARCH_MAX='+smax);",
+      "expect": "CANARY_SLOW_RANGE=633-656 STABLE_SEARCH_MAX=193"
+    },
+    {
+      "claim": "Canary /search p99 is at least 8x stable /search p99, while canary and stable /search p50 differ by no more than 5 ms.",
+      "query": "const q=(a,p)=>{const v=a.map(r=>r.ms).sort((x,y)=>x-y);return v[Math.min(v.length-1,Math.floor(v.length*p/100))];};\nconst cs=canary.filter(r=>r.path=='/search');\nconst ss=stable.filter(r=>r.path=='/search');\nconst cp99=q(cs,99),sp99=q(ss,99),cp50=q(cs,50),sp50=q(ss,50);\nprint('SEARCH p99 c='+cp99+' s='+sp99+' | p50 c='+cp50+' s='+sp50);\nprint('P99_RATIO_GE_8='+(cp99>=8*sp99)+' P50_DIFF_LE_5='+(Math.abs(cp50-sp50)<=5));",
+      "expect": "P99_RATIO_GE_8=true P50_DIFF_LE_5=true"
+    },
+    {
+      "claim": "Every slow canary /search request returned HTTP 200, and both canary and stable had zero 5xx responses.",
+      "query": "const c5=canary.filter(r=>r.status>=500).length;\nconst s5=stable.filter(r=>r.status>=500).length;\nconst slow=canary.filter(r=>r.path=='/search'&&r.ms>200);\nconst st={};slow.forEach(r=>{st[r.status]=(st[r.status]||0)+1;});\nprint('SLOW_STATUS_COUNTS='+JSON.stringify(st));\nprint('CANARY_5XX='+c5+' STABLE_5XX='+s5+' SLOW_ALL_200='+slow.every(r=>r.status==200));",
+      "expect": "CANARY_5XX=0 STABLE_5XX=0 SLOW_ALL_200=true"
+    },
+    {
+      "claim": "The slow canary /search requests appear in all four 30 s windows of the test, split 7, 2, 5 and 4.",
+      "query": "const slow=canary.filter(r=>r.path=='/search'&&r.ms>200);\nconst w=[0,0,0,0];\nslow.forEach(r=>{w[Math.min(3,Math.floor(r.t/30))]++;});\nconst ts=slow.map(r=>r.t).sort((a,b)=>a-b);\nprint('first_t='+ts[0].toFixed(1)+' last_t='+ts[ts.length-1].toFixed(1));\nprint('WINDOWS='+w.join(',')+' ALL4='+w.every(x=>x>0));",
+      "expect": "WINDOWS=7,2,5,4 ALL4=true"
+    },
+    {
+      "claim": "Canary p99 on /browse and /checkout is not worse than stable p99 on those paths (within 5 ms), so the regression is isolated to /search.",
+      "query": "const q=(a,p)=>{const v=a.map(r=>r.ms).sort((x,y)=>x-y);return v[Math.min(v.length-1,Math.floor(v.length*p/100))];};\nconst bc=q(canary.filter(r=>r.path=='/browse'),99),bs=q(stable.filter(r=>r.path=='/browse'),99);\nconst kc=q(canary.filter(r=>r.path=='/checkout'),99),ks=q(stable.filter(r=>r.path=='/checkout'),99);\nprint('/browse c_p99='+bc+' s_p99='+bs+' | /checkout c_p99='+kc+' s_p99='+ks);\nprint('OTHER_PATHS_NOT_WORSE='+((bc-bs<=5)&&(kc-ks<=5)));",
+      "expect": "OTHER_PATHS_NOT_WORSE=true"
+    },
+    {
+      "claim": "The canary pod served 2384 requests during the test against 7404 on the three stable pods.",
+      "query": "print('CANARY_N='+canary.length+' STABLE_N='+stable.length+' TOTAL='+rows.length);\nprint('CANARY_SHARE='+(100*canary.length/rows.length).toFixed(1)+'%');",
+      "expect": "CANARY_N=2384 STABLE_N=7404"
+    }
+  ]
+}

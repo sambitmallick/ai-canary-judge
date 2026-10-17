@@ -1,0 +1,41 @@
+{
+  "decision": "ROLLBACK",
+  "why": "ROLLBACK. Facts (each sentence below is one of the claims): Claim 1: canary /search p99 is more than 5x the stable /search p99 (651 ms vs 61 ms). Claim 2: 18 canary /search requests exceeded 500 ms, while no stable request on any path exceeded 400 ms (stable max is 343 ms). Claim 3: there were zero 5xx responses on either version and all 18 slow canary /search responses returned HTTP 200. Claim 4: those 18 slow responses occur in 11 of the 12 ten-second buckets of the test, from t=3.18s to t=113.3s. Claim 5: canary /search latency is bimodal - the fast cluster maxes at 190 ms, the slow cluster starts at 633 ms, and nothing falls between 200 ms and 600 ms. Claim 6: /browse and /checkout show no canary regression - canary max latency is less than or equal to stable max latency on both paths. Claim 7: the slow cluster is 2.47% of canary /search requests and 0.76% of all canary requests. Judgement: version 1.1 has a reproducible ~650 ms slow path on /search that version 1.0 does not have anywhere in the log; because it is spread over the whole 120 s (Claim 4) it is not a warmup or restart artifact, and because it is a clean bimodal split with an empty gap (Claim 5) it looks like a distinct code path (e.g. a cache miss or fallback branch) rather than scheduling noise. The dashboard hides this because p50 and p95 are unchanged and the per-path regression only shows in /search p99. Judgement on blast radius: the defect is isolated to /search (Claim 6) and causes no errors (Claim 3), so this is not a customer-facing outage; but at 25% of traffic it already affects 2.47% of searches (Claim 7), and promoting to 100% would put every search request on that code path instead of one pod in four, so the count of ~650 ms searches would grow roughly fourfold. Judgement: a 10x search tail regression with a known-good 1.0 still running is worth diagnosing before promotion, so roll back rather than promote.",
+  "claims": [
+    {
+      "claim": "Canary /search p99 is more than 5x the stable /search p99 (651 ms vs 61 ms).",
+      "query": "const q=(a,p)=>{const x=a.slice().sort((u,v)=>u-v);return x[Math.max(0,Math.min(x.length-1,Math.floor(p*x.length)))];};\nconst c=canary.filter(r=>r.path=='/search').map(r=>r.ms);\nconst s=stable.filter(r=>r.path=='/search').map(r=>r.ms);\nprint('canarySearchP99='+q(c,0.99)+' stableSearchP99='+q(s,0.99)+' tailRatioOver5x='+(q(c,0.99)>5*q(s,0.99)));",
+      "expect": "tailRatioOver5x=true"
+    },
+    {
+      "claim": "18 canary /search requests exceeded 500 ms, while no stable request on any path exceeded 400 ms (stable max 343 ms).",
+      "query": "const cs=canary.filter(r=>r.path=='/search');\nprint('canarySearchOver500='+cs.filter(r=>r.ms>500).length+' stableOver400AllPaths='+stable.filter(r=>r.ms>400).length+' stableMaxMs='+Math.max.apply(null,stable.map(r=>r.ms)));",
+      "expect": "canarySearchOver500=18 stableOver400AllPaths=0"
+    },
+    {
+      "claim": "There were zero 5xx responses on either version and all 18 slow canary /search responses returned HTTP 200.",
+      "query": "const slow=canary.filter(r=>r.path=='/search'&&r.ms>500);\nprint('canary5xx='+canary.filter(r=>r.status>=500).length+' stable5xx='+stable.filter(r=>r.status>=500).length+' slowCount='+slow.length+' slowNon200='+slow.filter(r=>r.status!=200).length);",
+      "expect": "canary5xx=0 stable5xx=0 slowCount=18 slowNon200=0"
+    },
+    {
+      "claim": "The 18 slow canary /search responses occur in 11 of the 12 ten-second buckets of the test, from t=3.18s to t=113.3s.",
+      "query": "const slow=canary.filter(r=>r.path=='/search'&&r.ms>500).slice().sort((a,b)=>a.t-b.t);\nconst b={};slow.forEach(r=>{const k=Math.floor(r.t/10)*10;b[k]=(b[k]||0)+1;});\nprint('slowCount='+slow.length+' distinctBuckets='+Object.keys(b).length+' of12 firstT='+slow[0].t+' lastT='+slow[slow.length-1].t);",
+      "expect": "distinctBuckets=11 of12 firstT=3.18 lastT=113.3"
+    },
+    {
+      "claim": "Canary /search latency is bimodal: fast cluster max 190 ms, slow cluster min 633 ms, and no request between 200 ms and 600 ms.",
+      "query": "const c=canary.filter(r=>r.path=='/search').map(r=>r.ms);\nconst fast=c.filter(m=>m<=500), slow=c.filter(m=>m>500);\nprint('fastN='+fast.length+' fastMax='+Math.max.apply(null,fast)+' slowN='+slow.length+' slowMin='+Math.min.apply(null,slow)+' between200and600='+c.filter(m=>m>200&&m<600).length);",
+      "expect": "fastMax=190 slowN=18 slowMin=633 between200and600=0"
+    },
+    {
+      "claim": "/browse and /checkout show no canary regression: canary max latency is <= stable max latency on both paths.",
+      "query": "const mx=(a,p)=>Math.max.apply(null,a.filter(r=>r.path==p).map(r=>r.ms));\nconst bc=mx(canary,'/browse'), bs=mx(stable,'/browse'), cc=mx(canary,'/checkout'), cs=mx(stable,'/checkout');\nprint('browseCanaryMax='+bc+' browseStableMax='+bs+' checkoutCanaryMax='+cc+' checkoutStableMax='+cs+' canaryNotWorse='+(bc<=bs&&cc<=cs));",
+      "expect": "canaryNotWorse=true"
+    },
+    {
+      "claim": "The slow cluster is 2.47% of canary /search requests and 0.76% of all canary requests.",
+      "query": "const cs=canary.filter(r=>r.path=='/search'), slow=cs.filter(r=>r.ms>500);\nprint('slowShareOfCanarySearch='+(100*slow.length/cs.length).toFixed(2)+'% slowShareOfAllCanary='+(100*slow.length/canary.length).toFixed(2)+'%');",
+      "expect": "slowShareOfCanarySearch=2.47% slowShareOfAllCanary=0.76%"
+    }
+  ]
+}

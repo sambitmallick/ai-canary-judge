@@ -1,0 +1,12 @@
+$ kubectl apply -f k8s/stable.yaml && kubectl rollout status deployment/shop-stable --timeout=120s && kubectl get pods -l app=shop -o wide
+service/shop created
+deployment.apps/shop-stable created
+Waiting for deployment "shop-stable" rollout to finish: 0 of 3 updated replicas are available...
+Waiting for deployment "shop-stable" rollout to finish: 1 of 3 updated replicas are available...
+Waiting for deployment "shop-stable" rollout to finish: 2 of 3 updated replicas are available...
+deployment "shop-stable" successfully rolled out
+NAME                           READY   STATUS    RESTARTS   AGE   IP           NODE                   NOMINATED NODE   READINESS GATES
+shop-stable-747f56db88-l68jl   1/1     Running   0          2s    10.244.0.7   canary-control-plane   <none>           <none>
+shop-stable-747f56db88-q2nrg   1/1     Running   0          2s    10.244.0.6   canary-control-plane   <none>           <none>
+shop-stable-747f56db88-qrnrq   1/1     Running   0          2s    10.244.0.5   canary-control-plane   <none>           <none>
+[exit 0, 2s]

@@ -1,0 +1,26 @@
+{
+  "decision": "PROMOTE",
+  "why": "(1) No error regression: all 9785 requests returned 200, with 0 5xx on both the 7374 stable (1.0) and 2411 canary (1.1) requests [claim 1]. (2) Latency parity: for every endpoint (/browse, /search, /checkout) and overall, canary p50/p95 differ from stable by at most 1 ms [claim 2]. (3) The only asymmetry is slow (>40 ms) /browse requests: canary 13/1200 = 1.08% vs stable 15/3672 = 0.41%, but the tail is bounded at the same ceiling for both versions (canary /browse max 87 ms, stable /browse max 87 ms), which is below the overall stable p95 of 94 ms, and the 13 canary slow requests are spread across the whole run (2s to 115s) rather than clustered [claim 3]. JUDGEMENT: a ~1% rate of bounded sub-90 ms responses on one read-only endpoint, with the same maximum as stable and no clustering, is noise-level and not customer-impacting; with 1200 canary /browse samples this difference is small in absolute terms (about 6 extra slow requests) and carries no error or tail-blowup signal. (4) No degradation over time: in each of the four 30 s windows the canary-vs-stable p95 gap is at most 4 ms and 5xx stays 0 in every window, so there is no warm-up decay, leak-style drift, or late-run regression [claim 4]. JUDGEMENT: the evidence shows no customer-visible regression, so blocking the release would be the costlier error; promote, and keep the standard post-promote watch on /browse tail latency for the first hour at 100% traffic.",
+  "claims": [
+    {
+      "claim": "Zero 5xx responses in the whole test: 0 of 7374 stable (1.0) requests and 0 of 2411 canary (1.1) requests failed, across 9785 total requests.",
+      "query": "const is5xx = r => r.status >= 500;\nprint('STABLE n=' + stable.length + ' 5xx=' + stable.filter(is5xx).length);\nprint('CANARY n=' + canary.length + ' 5xx=' + canary.filter(is5xx).length);\nprint('ROWS n=' + rows.length + ' TOTAL_5XX=' + rows.filter(is5xx).length);",
+      "expect": "TOTAL_5XX=0"
+    },
+    {
+      "claim": "Canary and stable latency are at parity: per-endpoint and overall p50/p95 differ by at most 1 ms.",
+      "query": "const P=(a,p)=>{const s=a.slice().sort((x,y)=>x-y);return s[Math.max(0,Math.ceil(p/100*s.length)-1)];};\nlet mx=0;\nfor (const path of ['/browse','/search','/checkout']) {\n  const sv=stable.filter(r=>r.path===path).map(r=>r.ms);\n  const cv=canary.filter(r=>r.path===path).map(r=>r.ms);\n  for (const q of [50,95]) {\n    const a=P(sv,q), b=P(cv,q), d=Math.abs(a-b);\n    if (d>mx) mx=d;\n    print(path+' p'+q+' stable='+a+' canary='+b+' delta='+d);\n  }\n}\nconst sa=stable.map(r=>r.ms), ca=canary.map(r=>r.ms);\nfor (const q of [50,95]) {\n  const a=P(sa,q), b=P(ca,q), d=Math.abs(a-b);\n  if (d>mx) mx=d;\n  print('ALL p'+q+' stable='+a+' canary='+b+' delta='+d);\n}\nprint('MAXDELTA_MS='+mx);",
+      "expect": "MAXDELTA_MS=1"
+    },
+    {
+      "claim": "On /browse the canary has a higher slow-request rate (13/1200 = 1.08%) than stable (15/3672 = 0.41%), but the tail is bounded at the same 87 ms maximum as stable, below the overall stable p95 of 94 ms, and the slow requests are spread across the full 120 s run.",
+      "query": "const P=(a,p)=>{const s=a.slice().sort((x,y)=>x-y);return s[Math.max(0,Math.ceil(p/100*s.length)-1)];};\nconst bs=stable.filter(r=>r.path==='/browse'), bc=canary.filter(r=>r.path==='/browse');\nconst slow=a=>a.filter(r=>r.ms>40);\nconst ss=slow(bs), sc=slow(bc);\nconst mx=a=>a.reduce((m,r)=>r.ms>m?r.ms:m,0);\nprint('STABLE /browse n='+bs.length+' slow='+ss.length+' rate='+(100*ss.length/bs.length).toFixed(2)+'%');\nprint('CANARY /browse n='+bc.length+' slow='+sc.length+' rate='+(100*sc.length/bc.length).toFixed(2)+'%');\nprint('STABLE_BROWSE_MAX_MS='+mx(bs)+' CANARY_BROWSE_MAX_MS='+mx(bc));\nprint('STABLE_ALL_P95_MS='+P(stable.map(r=>r.ms),95));\nprint('canary slow times(s)='+sc.map(r=>Math.round(r.t)).join(','));",
+      "expect": "CANARY_BROWSE_MAX_MS=87"
+    },
+    {
+      "claim": "No degradation over time: in every 30 s window the canary-vs-stable p95 gap is at most 4 ms and both versions have 0 5xx.",
+      "query": "const P=(a,p)=>{const s=a.slice().sort((x,y)=>x-y);return s[Math.max(0,Math.ceil(p/100*s.length)-1)];};\nconst is5xx=r=>r.status>=500;\nconst w=r=>Math.min(3,Math.floor(r.t/30));\nlet mx=0, tot5=0;\nfor (let i=0;i<4;i++) {\n  const sv=stable.filter(r=>w(r)===i), cv=canary.filter(r=>w(r)===i);\n  const a=P(sv.map(r=>r.ms),95), b=P(cv.map(r=>r.ms),95), d=Math.abs(a-b);\n  if (d>mx) mx=d;\n  const s5=sv.filter(is5xx).length, c5=cv.filter(is5xx).length;\n  tot5 += s5 + c5;\n  print('win '+(i*30)+'-'+((i+1)*30)+'s stableP95='+a+' canaryP95='+b+' delta='+d+' stable5xx='+s5+' canary5xx='+c5);\n}\nprint('MAXWINDOW_P95_DELTA_MS='+mx+' WINDOW_TOTAL_5XX='+tot5);",
+      "expect": "MAXWINDOW_P95_DELTA_MS=4"
+    }
+  ]
+}

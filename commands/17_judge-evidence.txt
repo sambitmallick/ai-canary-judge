@@ -1,0 +1,22 @@
+$ bash run-judges-evidence.sh
+B evidence 3 exit=4
+B evidence 1 exit=4
+A evidence 5 exit=4
+B evidence 2 exit=4
+B evidence 4 exit=4
+A evidence 3 exit=4
+B evidence 5 exit=4
+A evidence 1 exit=4
+A evidence 4 exit=4
+C evidence 4 exit=4
+A evidence 2 exit=4
+C evidence 2 exit=4
+C evidence 3 exit=4
+D evidence 2 exit=4
+D evidence 5 exit=4
+C evidence 5 exit=4
+D evidence 1 exit=4
+C evidence 1 exit=4
+D evidence 3 exit=4
+D evidence 4 exit=4
+[exit 0, 1106s]

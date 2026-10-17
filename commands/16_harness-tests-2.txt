@@ -1,0 +1,17 @@
+$ python agent/test_judge.py
+PASS  dashboard mode: only write_file + done (no file reading at all)
+PASS  evidence mode: adds run_query, still no file reading
+PASS  dashboard mode: the system prompt builds
+PASS  evidence mode: the system prompt builds
+PASS  a query sees this canary's raw log, split by version
+PASS  a query can't require anything
+PASS  a query can't loop forever
+PASS  pct() is available
+PASS  evidence mode: verified claims pass the gate
+PASS  evidence mode: a claim the data contradicts is refused
+PASS  evidence mode: a decision without claims is refused
+PASS  dashboard mode: the same file is accepted
+PASS  only PROMOTE or ROLLBACK
+
+13/13 checks passed -- no model, no API call.
+[exit 0, 30s]

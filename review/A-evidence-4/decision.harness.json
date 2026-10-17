@@ -1,0 +1,35 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "Neither version returned any 5xx; the only HTTP status present in the whole run is 200.",
+   "verified": true,
+   "output": "ERRORS canary_5xx=0 stable_5xx=0 statuses=[200]"
+  },
+  {
+   "claim": "Over the full 120 s run the canary aggregate p95 is 177 ms (n=2476) versus 94 ms for stable (n=7343).",
+   "verified": true,
+   "output": "FULLRUN canary n=2476 p95=177 | stable n=7343 p95=94"
+  },
+  {
+   "claim": "The canary's latency penalty is concentrated in the first 60 s: p95 210 ms vs stable 93 ms in 0-30 s, and 130 ms vs 94 ms in 30-60 s.",
+   "verified": true,
+   "output": "EARLY 0-30 c210/s93 | 30-60 c130/s94"
+  },
+  {
+   "claim": "After t=60 s the canary matches stable on every percentile: canary n=1261 p50=36 p95=94 p99=104 versus stable n=3651 p50=34 p95=95 p99=104.",
+   "verified": true,
+   "output": "AFTER60 canary n=1261 p50=36 p95=94 p99=104 | stable n=3651 p50=34 p95=95 p99=104"
+  },
+  {
+   "claim": "Per-route steady state after 60 s is at parity: /browse p95 27 ms canary vs 27 ms stable, /search 59 vs 59, /checkout 103 vs 104.",
+   "verified": true,
+   "output": "AFTER60ROUTES /browse c27/s27 /search c59/s59 /checkout c103/s104"
+  },
+  {
+   "claim": "The last two windows are flat rather than degrading: 60-90 s p95 95 ms canary vs 95 ms stable, and 90 s to end p95 94 ms canary vs 94 ms stable.",
+   "verified": true,
+   "output": "LATEWIN 60-90 c95/s95 | 90-end c94/s94"
+  }
+ ]
+}

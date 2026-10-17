@@ -1,0 +1,4 @@
+$ kind load image-archive shop.tar --name canary
+using podman due to KIND_EXPERIMENTAL_PROVIDER
+enabling experimental podman provider
+[exit 0, 6s]

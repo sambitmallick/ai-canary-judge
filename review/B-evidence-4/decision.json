@@ -1,0 +1,31 @@
+{
+  "decision": "ROLLBACK",
+  "why": "ROLLBACK. Facts: the canary pod returned 10 HTTP 500s while the three stable pods returned 0 (claim 1). Every single canary 5xx was on /checkout (claim 2). On /checkout the canary failed 10 of 483 requests = 2.07%, against 0.00% of stable's 1455 requests on the same endpoint (claim 3). The failures are spread over 5 of the 6 twenty-second windows of the test, not confined to one window (claim 4). Canary p95 latency is not more than 20 ms worse than stable p95 (claim 5). Judgement: latency is fine, so the only signal is a new, sustained ~2% failure rate that exists only in 1.1 and only on checkout - the most customer- and revenue-critical path. It is not a warm-up blip (claim 4) and it is not a stable-side or infrastructure problem, since identical traffic to 1.0 produced zero errors (claim 3). Judgement: ~2% of checkouts failing at 100% of traffic is directly customer-visible, while the cost of a bad rollback is only a delayed release, so rolling back is the cheaper error; promote only after the 500s on /checkout are root-caused and fixed.",
+  "claims": [
+    {
+      "claim": "The canary (1.1) returned 10 responses with status >= 500 during the test; the stable pods (1.0) returned 0.",
+      "query": "print('canary 5xx', canary.filter(r=>r.status>=500).length, 'stable 5xx', stable.filter(r=>r.status>=500).length);",
+      "expect": "canary 5xx 10 stable 5xx 0"
+    },
+    {
+      "claim": "Every canary 5xx was on the /checkout path (exactly one distinct failing path).",
+      "query": "const p=[...new Set(canary.filter(r=>r.status>=500).map(r=>r.path))]; print('canary 5xx paths', p.join(','), 'distinct', p.length);",
+      "expect": "canary 5xx paths /checkout distinct 1"
+    },
+    {
+      "claim": "On /checkout the canary failed 10 of 483 requests (2.07%) while stable failed 0 of 1455 (0.00%).",
+      "query": "const cc=canary.filter(r=>r.path==='/checkout'), ss=stable.filter(r=>r.path==='/checkout'); const c5=cc.filter(r=>r.status>=500).length, s5=ss.filter(r=>r.status>=500).length; print('canary /checkout 5xx', c5, 'of', cc.length, '=', (100*c5/cc.length).toFixed(2)+'%', '| stable /checkout 5xx', s5, 'of', ss.length, '=', (100*s5/ss.length).toFixed(2)+'%');",
+      "expect": "canary /checkout 5xx 10 of 483 = 2.07% | stable /checkout 5xx 0 of 1455 = 0.00%"
+    },
+    {
+      "claim": "The canary 5xx errors are spread across 5 of the 6 twenty-second windows of the 120 s test, so they are not a single startup blip.",
+      "query": "const t=canary.filter(r=>r.status>=500).map(r=>r.t).sort((a,b)=>a-b); const w=new Set(t.map(x=>Math.floor(x/20))); print('5xx count', t.length, 'windows with 5xx', w.size, 'of 6');",
+      "expect": "windows with 5xx 5 of 6"
+    },
+    {
+      "claim": "Canary overall p95 latency is not more than 20 ms worse than stable overall p95 latency, so latency is not the reason for the decision.",
+      "query": "const q=(a,x)=>{const s=a.slice().sort((u,v)=>u-v); return s[Math.min(s.length-1, Math.floor(x*s.length))];}; const cp=q(canary.map(r=>r.ms),0.95), sp=q(stable.map(r=>r.ms),0.95); print('p95 canary', cp, 'p95 stable', sp, 'canary p95 more than 20ms worse?', (cp-sp)>20);",
+      "expect": "canary p95 more than 20ms worse? false"
+    }
+  ]
+}

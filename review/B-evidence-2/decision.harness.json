@@ -1,0 +1,25 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "Canary 1.1 returned 10 HTTP 5xx, all on /checkout, while stable returned 0 5xx across 7359 requests.",
+   "verified": true,
+   "output": "canary 5xx total=10 paths=/checkout stable 5xx total=0/7359"
+  },
+  {
+   "claim": "The canary /checkout error rate is 2.07% (10/483) versus 0.00% (0/1455) on stable.",
+   "verified": true,
+   "output": "canary /checkout 10/483=2.07% stable /checkout 0/1455=0.00%"
+  },
+  {
+   "claim": "The canary 5xx responses occur in all four 30 s windows of the test (1,3,3,3).",
+   "verified": true,
+   "output": "canary 5xx per 30s window=1,3,3,3"
+  },
+  {
+   "claim": "Latency is comparable between versions: canary p95 is 96 ms vs stable p95 94 ms.",
+   "verified": true,
+   "output": "p95 canary=96 stable=94"
+  }
+ ]
+}

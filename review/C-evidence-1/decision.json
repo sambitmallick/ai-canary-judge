@@ -1,0 +1,31 @@
+{
+  "decision": "PROMOTE",
+  "why": "PROMOTE. Facts (each one is a claim below, verified against the raw request log): (1) Neither version returned a single 5xx and no request on either version returned a non-200 status: canary 0/2411, stable 0/7374. (2) Overall latency is not worse on the canary: canary overall p95 is not more than 2 ms above stable overall p95 (93 vs 94 in my calculation). (3) Checkout, the revenue path, is unchanged: canary /checkout p95 is within 2 ms of stable /checkout p95. (4) The only visible difference is the /browse tail: 13 of 1200 canary /browse requests exceeded 40 ms versus 15 of 3672 stable requests, which is what lifts canary /browse p99 to 77 ms while stable sits at 28 ms. (5) Those slow /browse requests are bounded and not a developing trend: the slowest /browse request is 87 ms on BOTH versions, and the canary's slow requests occur in all four 30 s windows rather than clustering at the end of the test. Judgement: a tail that tops out at 87 ms on a page whose p50 is 22 ms is not customer-visible harm, there is no error-rate or saturation signal to go with it, and 13 events on a single pod over 120 s is within noise, so this does not justify blocking the release. Judgement: promote, but watch /browse p99 for the first 30 minutes at 100% traffic, since 4x the traffic on this code path is the one thing this canary did not test.",
+  "claims": [
+    {
+      "claim": "Neither version produced any 5xx or any non-200 response: canary 0 of 2411 requests, stable 0 of 7374 requests.",
+      "query": "var c5=canary.filter(function(r){return r.status>=500;}).length; var s5=stable.filter(function(r){return r.status>=500;}).length; var cn=canary.filter(function(r){return r.status!==200;}).length; var sn=stable.filter(function(r){return r.status!==200;}).length; print('5xx canary='+c5+'/'+canary.length+' stable='+s5+'/'+stable.length+' non200 canary='+cn+' stable='+sn);",
+      "expect": "5xx canary=0/2411 stable=0/7374 non200 canary=0 stable=0"
+    },
+    {
+      "claim": "Canary overall p95 latency is not more than 2 ms worse than stable overall p95 (canary 93 ms vs stable 94 ms).",
+      "query": "function P(a,q){var s=a.slice().sort(function(x,y){return x-y;});return s[Math.min(s.length-1,Math.ceil(q/100*s.length)-1)];} var cp=P(canary.map(function(r){return r.ms;}),95); var sp=P(stable.map(function(r){return r.ms;}),95); print('overall p95 canary='+cp+' stable='+sp+' canaryP95NotWorseBy2ms='+((cp-sp)<=2));",
+      "expect": "canaryP95NotWorseBy2ms=true"
+    },
+    {
+      "claim": "Canary /checkout p95 is within 2 ms of stable /checkout p95, so the checkout path is unchanged.",
+      "query": "function P(a,q){var s=a.slice().sort(function(x,y){return x-y;});return s[Math.min(s.length-1,Math.ceil(q/100*s.length)-1)];} function ms(rs,p){return rs.filter(function(r){return r.path===p;}).map(function(r){return r.ms;});} var cp=P(ms(canary,'/checkout'),95); var sp=P(ms(stable,'/checkout'),95); print('checkout p95 canary='+cp+' stable='+sp+' checkoutP95Within2ms='+(Math.abs(cp-sp)<=2));",
+      "expect": "checkoutP95Within2ms=true"
+    },
+    {
+      "claim": "The canary has proportionally more slow /browse requests: 13 of 1200 canary /browse requests exceeded 40 ms versus 15 of 3672 stable /browse requests, and this is what raises canary /browse p99 to 77 ms against stable 28 ms.",
+      "query": "function P(a,q){var s=a.slice().sort(function(x,y){return x-y;});return s[Math.min(s.length-1,Math.ceil(q/100*s.length)-1)];} var cb=canary.filter(function(r){return r.path==='/browse';}); var sb=stable.filter(function(r){return r.path==='/browse';}); var cs=cb.filter(function(r){return r.ms>40;}).length; var ss=sb.filter(function(r){return r.ms>40;}).length; print('browse_slow40 canary='+cs+'/'+cb.length+' stable='+ss+'/'+sb.length); print('browse p99 canary='+P(cb.map(function(r){return r.ms;}),99)+' stable='+P(sb.map(function(r){return r.ms;}),99));",
+      "expect": "browse_slow40 canary=13/1200 stable=15/3672"
+    },
+    {
+      "claim": "The canary /browse tail is bounded and not a developing trend: the slowest /browse request is 87 ms on both versions, and the canary's >40 ms /browse requests occur in every one of the four 30 s windows rather than clustering at the end.",
+      "query": "var cb=canary.filter(function(r){return r.path==='/browse';}); var sb=stable.filter(function(r){return r.path==='/browse';}); var cmax=Math.max.apply(null,cb.map(function(r){return r.ms;})); var smax=Math.max.apply(null,sb.map(function(r){return r.ms;})); var w=[0,0,0,0]; cb.filter(function(r){return r.ms>40;}).forEach(function(r){var i=Math.floor(r.t/30); if(i>3){i=3;} if(i<0){i=0;} w[i]++;}); var all=w[0]>0&&w[1]>0&&w[2]>0&&w[3]>0; print('browse_max canary='+cmax+' stable='+smax+' allWindowsHaveSlow='+all); print('slow_by_window='+w.join(','));",
+      "expect": "browse_max canary=87 stable=87 allWindowsHaveSlow=true"
+    }
+  ]
+}

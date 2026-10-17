@@ -1,0 +1,30 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "Every request in the log returned HTTP 200: zero 5xx and zero non-200 responses on both stable (1.0) and canary (1.1).",
+   "verified": true,
+   "output": "ERRORS 5xx stable=0 canary=0 non200 stable=0 canary=0 allOk=true"
+  },
+  {
+   "claim": "In the first 30 s of the test the canary p95 was more than twice the stable p95 over the same window.",
+   "verified": true,
+   "output": "FIRST30 canary p95=210 stable p95=93 canarySlower2x=true"
+  },
+  {
+   "claim": "From 60 s onward the canary p95 is within 10 ms of the stable p95, over more than 1000 canary requests.",
+   "verified": true,
+   "output": "AFTER60 canary p95=94 stable p95=95 nCanary=1261 nStable=3651 converged=true enough=true"
+  },
+  {
+   "claim": "Canary requests slower than 150 ms are more than 10x more frequent in the first 30 s than after 60 s, so the slowness is front-loaded.",
+   "verified": true,
+   "output": "SLOW150 canaryFirst30=272 canaryAfter60=6 frontLoaded=true"
+  },
+  {
+   "claim": "After 60 s the canary p95 on /checkout is not more than 10 ms above the stable p95 on /checkout.",
+   "verified": true,
+   "output": "AFTER60 /checkout canary p95=103 n=268 stable p95=104 n=735 noRegression=true"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+$ bash run-canary.sh warmup A
+### 1. replace the canary (VERSION=1.1, FAULT=warmup)
+deployment.apps/shop-canary created
+Waiting for deployment "shop-canary" rollout to finish: 0 of 1 updated replicas are available...
+deployment "shop-canary" successfully rolled out
+NAME                           READY   STATUS    RESTARTS   AGE   TRACK
+shop-canary-5484646c6-gzcm9    1/1     Running   0          2s    canary
+shop-stable-747f56db88-l68jl   1/1     Running   0          25s   stable
+shop-stable-747f56db88-q2nrg   1/1     Running   0          25s   stable
+shop-stable-747f56db88-qrnrq   1/1     Running   0          25s   stable
+### 2. load test: 80 requests/s for 120 s, from inside the cluster
+job.batch/loadgen created
+job.batch/loadgen condition met
+### 3. collect every request
+requests recorded: 9820
+<anonymous_script>:1
+done: 9819 requests
+^
+
+SyntaxError: Unexpected token 'd', "done: 9819 requests" is not valid JSON
+    at parse (<anonymous>)
+    at Array.map (<anonymous>)
+    at [eval]:2:85
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.19.0
+[exit 1, 131s]

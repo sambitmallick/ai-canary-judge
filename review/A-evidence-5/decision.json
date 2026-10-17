@@ -1,0 +1,31 @@
+{
+  "decision": "PROMOTE",
+  "why": "PROMOTE. Facts: (a) there were zero 5xx and zero non-200 responses across all 9819 requests, on both canary and stable [claim 1]; (b) the canary carried a real share of traffic, 2476 of 9819 requests = 25.2% [claim 2]; (c) in aggregate the canary is slower than stable, p95 177 ms vs 94 ms (~1.9x) [claim 3]; (d) that gap is confined to the beginning of the test - the per-30s-window canary/stable p95 goes from 210/93 ms in 0-30s to 94/94 ms in 90-120s [claim 4]; (e) over the last 60 s the canary served at least 1200 requests and its p95 was within 5 ms of stable both overall and on every path, including /checkout [claim 5]. Judgement: a large early latency gap that decays monotonically to exact parity, with no errors at any point, is the signature of cold start on the one freshly started pod (JIT warm-up, empty caches, cold connection pools), not of a steady-state regression in 1.1; the aggregate p95 of 177 ms is an average polluted by that warm-up phase. Steady-state behaviour is what customers get after promotion, so rolling back here would block a release over a warm-up artifact while customer-visible risk in the measured steady state is nil. Judgement on residual risk: one pod at ~25% of traffic does not prove 1.1 holds at 100% of load, and the warm-up penalty will recur on each new pod, so promote via a staged ramp (e.g. 50% then 100%) with readiness/warm-up gating, and watch p95 and 5xx during the ramp with a fast rollback ready.",
+  "claims": [
+    {
+      "claim": "There were zero 5xx and zero non-200 responses across all 9819 requests, on both canary (1.1) and stable (1.0).",
+      "query": "const c5=canary.filter(r=>r.status>=500).length, s5=stable.filter(r=>r.status>=500).length; print('5xx canary='+c5+' stable='+s5+' total_reqs='+rows.length+' non200='+rows.filter(r=>r.status!==200).length);",
+      "expect": "5xx canary=0 stable=0 total_reqs=9819 non200=0"
+    },
+    {
+      "claim": "The canary carried a real share of traffic: 2476 of 9819 requests, 25.2%.",
+      "query": "print('TRAFFIC canary='+canary.length+' stable='+stable.length+' total='+rows.length+' canary_share='+(canary.length/rows.length*100).toFixed(1)+'%');",
+      "expect": "TRAFFIC canary=2476 stable=7343 total=9819 canary_share=25.2%"
+    },
+    {
+      "claim": "Over the whole 120 s test the canary p95 was 177 ms versus 94 ms for stable (about 1.9x).",
+      "query": "const cp=pct(canary.map(r=>r.ms),0.95), sp=pct(stable.map(r=>r.ms),0.95); print('AGG canary_p95='+cp+' stable_p95='+sp+' ratio='+(cp/sp).toFixed(2));",
+      "expect": "AGG canary_p95=177 stable_p95=94"
+    },
+    {
+      "claim": "The latency gap is confined to the start of the test: per-30s-window canary/stable p95 goes from 210/93 ms in 0-30s to 94/94 ms in 90-120s.",
+      "query": "function p(rs){return pct(rs.map(r=>r.ms),0.95)} const o=[0,1,2,3].map(i=>{const f=rows.filter(r=>Math.min(3,Math.floor(r.t/30))===i); return p(f.filter(r=>r.version==='1.1'))+'/'+p(f.filter(r=>r.version==='1.0'))}); print('WINDOWS canary_p95/stable_p95 '+o.join(' ')); print('DECAY WIN0='+o[0]+' WIN3='+o[3]);",
+      "expect": "DECAY WIN0=210/93 WIN3=94/94"
+    },
+    {
+      "claim": "In the last 60 s of the test the canary served at least 1200 requests and its p95 was within 5 ms of stable overall and on every path, including /checkout.",
+      "query": "function p(rs){return pct(rs.map(r=>r.ms),0.95)} const l=rows.filter(r=>r.t>=60), cc=l.filter(r=>r.version==='1.1'), ss=l.filter(r=>r.version==='1.0'); let ok=p(cc)<=p(ss)+5, det=[]; for(const pa of [...new Set(l.map(r=>r.path))]){const a=p(cc.filter(r=>r.path===pa)), b=p(ss.filter(r=>r.path===pa)); det.push(pa+' '+a+'/'+b); if(!(a<=b+5)) ok=false;} print('LAST60 n_canary='+cc.length+' overall_canary/stable_p95 '+p(cc)+'/'+p(ss)+' | '+det.join(' | ')); print('LAST60_PARITY_AND_N='+(ok && cc.length>=1200));",
+      "expect": "LAST60_PARITY_AND_N=true"
+    }
+  ]
+}

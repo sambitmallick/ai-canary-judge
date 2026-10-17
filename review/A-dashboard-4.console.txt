@@ -1,0 +1,11 @@
+agent: canary judge   canary = A   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/A-dashboard-4/decision.json')
+   thought: The aggregate canary numbers look bad (p95 177ms vs 94ms, p50 62 vs 34), but the time-series shows this is entirely a warm-up artifact: canary p95 goes 210 -> 1
+   result : wrote review/A-dashboard-4/decision.json
+── step 2 ── write_file(path='review/A-dashboard-4/decision.json')
+   thought: The decision file was written in step 1, but the content shown in the log is truncated, so I can't confirm it's complete, valid JSON — and I have no read tool t
+   result : wrote review/A-dashboard-4/decision.json
+── step 3 ── done(summary='Decision: PROMOTE, written to review/A-dashboard-4/decision.')
+   thought: The decision file has already been written (twice) with PROMOTE and the supporting reasoning. The evidence supports it: 0 5xx on both arms across all routes (98
+
+🟡 handing back to a human after 3 steps — decision: PROMOTE

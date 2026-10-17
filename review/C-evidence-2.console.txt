@@ -1,0 +1,47 @@
+agent: canary judge   canary = C   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='const mx = a => a.reduce((m,x)=>x>m?x:m, -1);\nconst st = {};')
+   thought: The dashboard looks clean overall, but two things smell: canary /browse p99 is 77ms vs stable 28ms (a tail that doesn't exist on stable), and canary p95 crosses
+   result : STATUS: {"1.1 200":2411,"1.0 200":7374}
+            TOTAL rows=9785 stable=7374 canary=2411
+            PATHS: /browse,/search,/checkout
+            PATH /browse v1.0 n=3672 p50=87 p95=87 p99=87 p999=87 max=87
+            PATH /browse v1.1 n=1200 p50=87 p95=87 p99=87 p999=87 max=87
+            PATH /search v1.0 n=2211 p50=193 p95=193 p99=193 p999=193 max=193
+            PATH /search v1.1 n=749 p50=191 p95=191 p99=191 p999=191 max=191
+            PATH /checkout v1.0 n=1491 p50=339 …
+── step 2 ── run_query(code='function P(a,p){if(!a.length)return NaN;const s=a.slice().so')
+   thought: My step-1 percentiles were clearly broken (p50==p95==max per path), so pct() was misused. I need correct percentiles with my own sort-based function, plus a pro
+   result : STATUSES SEEN: 200
+            ALL v1.0 n=7374 5xx=0 p50=34 p95=94 p99=104 max=339
+            ALL v1.1 n=2411 5xx=0 p50=34 p95=93 p99=105 max=339
+            /browse v1.0 n=3672 p50=22 p95=27 p99=28 p999=86 max=87
+            /browse v1.1 n=1200 p50=22 p95=27 p99=77 p999=87 max=87
+            /search v1.0 n=2211 p50=47 p95=59 p99=61 p999=190 max=193
+            /search v1.1 n=749 p50=47 p95=59 p99=61 p999=191 max=191
+            /checkout v1.0 n=1491 p50=81 p95=103 p99=105 p999= …
+── step 3 ── run_query(code='const P=(a,p)=>{const s=a.slice().sort((x,y)=>x-y);return s[')
+   thought: The picture is nearly settled: zero errors, latency distributions essentially identical, and the only divergence is a slightly fatter /browse tail on the canary
+   result : C1 v1.0 n=7374 non200=0 5xx=0
+            C1 v1.1 n=2411 non200=0 5xx=0
+            C2 ALL p50 stable=34 canary=34 delta=0
+            C2 ALL p95 stable=94 canary=93 delta=1
+            C2 ALL p99 stable=104 canary=105 delta=1
+            C2 /browse p50 stable=22 canary=22 delta=0
+            C2 /browse p95 stable=27 canary=27 delta=0
+            C2 /search p50 stable=47 canary=47 delta=0
+            C2 /search p95 stable=59 canary=59 delta=0
+            C2 /checkout p50 stable=81 canary=82 delta=1
+            C2 / …
+── step 4 ── write_file(path='review/C-evidence-2/decision.json')
+   thought: Evidence is complete: zero non-200s on both versions, percentile parity (≤1 ms deltas on overall p50/p95/p99 and per-path p50/p95), per-window p95 gap ≤4 ms wit
+   result : wrote review/C-evidence-2/decision.json
+── step 5 ── write_file(path='review/C-evidence-2/decision.json')
+   thought: The decision file was already written in step 4, but I never saw its full content echoed back, so I cannot be sure the claim queries/expect strings in it are ex
+   result : wrote review/C-evidence-2/decision.json
+── step 6 ── write_file(path='review/C-evidence-2/decision.json')
+   thought: I already verified every numeric claim in step 3 (zero 5xx, max per-path percentile delta 1 ms, canary /browse slow rate 1.08% with tail bounded at 87 ms, max p
+   result : wrote review/C-evidence-2/decision.json
+── step 7 ── done(summary='Decision: PROMOTE canary 1.1, written to review/C-evidence-2')
+   thought: The decision file is written (step 6) with PROMOTE plus claims whose queries I already executed in step 3 and whose outputs I verified (C1 zero non-200/5xx on b
+
+🟡 handing back to a human after 7 steps — decision: PROMOTE

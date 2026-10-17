@@ -1,0 +1,31 @@
+{
+  "decision": "ROLLBACK",
+  "why": "The dashboard aggregates look clean (0 5xx, canary p95 95ms vs stable 96ms, flat over all four 30s windows), but the raw log shows a tail regression that only exists in version 1.1. Facts (each one is a claim below): (1) 18 of 729 canary /search requests took more than 200ms, while 0 of 2273 stable /search requests did. (2) Those slow canary responses cluster tightly at 633-656ms, versus a canary /search median of 47ms and a stable /search maximum of 193ms. (3) They are not errors: 0 5xx and 0 non-200 responses in the whole test, and every slow canary /search request returned 200. (4) They are spread across the entire run, from t=3.2s to t=113.3s, 18 occurrences. (5) The effect is confined to /search: canary /browse had 0 requests over 200ms and canary /checkout had 1, while stable /checkout itself had 7. Judgement: fact 1 plus fact 5 mean this is a version-specific regression on one endpoint, not load noise or a shared-infrastructure blip, because the stable pods served 3x the traffic on the same endpoint in the same window with no request anywhere near that range; fact 4 rules out a cold-start/warm-up artifact; fact 2 means the affected users wait ~13x the normal search time, which is customer-visible even though fact 3 means nothing fails outright. Judgement: at 25% traffic this surfaces as ~2.5% of canary searches; promoting to 100% would apply the same regression to all search traffic, and the aggregate p95 would keep hiding it. The cost of waiting is one blocked release, so I rollback and hand the ~640ms stall on /search to the owning team as the thing to fix before the next canary.",
+  "claims": [
+    {
+      "claim": "18 of 729 canary /search requests exceeded 200ms; 0 of 2273 stable /search requests did.",
+      "query": "const c=canary.filter(r=>r.path==='/search'),s=stable.filter(r=>r.path==='/search');print('canary_slow='+c.filter(r=>r.ms>200).length+'/'+c.length+' stable_slow='+s.filter(r=>r.ms>200).length+'/'+s.length);",
+      "expect": "canary_slow=18/729 stable_slow=0/2273"
+    },
+    {
+      "claim": "The slow canary /search responses cluster at 633-656ms, against a canary /search median of 47ms and a stable /search maximum of 193ms.",
+      "query": "const slow=canary.filter(r=>r.path==='/search'&&r.ms>200).map(r=>r.ms).sort((a,b)=>a-b);const all=canary.filter(r=>r.path==='/search').map(r=>r.ms).sort((a,b)=>a-b);const s=stable.filter(r=>r.path==='/search').map(r=>r.ms);print('slowMin='+slow[0]+' slowMax='+slow[slow.length-1]+' canaryMedian='+all[Math.floor(all.length/2)]+' stableSearchMax='+Math.max.apply(null,s));",
+      "expect": "slowMin=633 slowMax=656 canaryMedian=47 stableSearchMax=193"
+    },
+    {
+      "claim": "There are no failures anywhere in the test: 0 5xx, 0 non-200, and every slow canary /search request returned 200.",
+      "query": "print('all5xx='+rows.filter(r=>r.status>=500).length+' allNon200='+rows.filter(r=>r.status!==200).length+' slowStatuses='+Array.from(new Set(canary.filter(r=>r.path==='/search'&&r.ms>200).map(r=>r.status))).join(','));",
+      "expect": "all5xx=0 allNon200=0 slowStatuses=200"
+    },
+    {
+      "claim": "The 18 slow canary /search requests span the whole 120s run, from t=3.2s to t=113.3s.",
+      "query": "const c=canary.filter(r=>r.path==='/search'&&r.ms>200).slice().sort((a,b)=>a.t-b.t);print('firstSlow='+c[0].t.toFixed(1)+' lastSlow='+c[c.length-1].t.toFixed(1)+' count='+c.length);",
+      "expect": "firstSlow=3.2 lastSlow=113.3 count=18"
+    },
+    {
+      "claim": "The regression is confined to /search: canary /browse had 0 requests over 200ms and canary /checkout had 1, while stable /checkout had 7.",
+      "query": "print('canaryBrowseSlow='+canary.filter(r=>r.path==='/browse'&&r.ms>200).length+' canaryCheckoutSlow='+canary.filter(r=>r.path==='/checkout'&&r.ms>200).length+' stableCheckoutSlow='+stable.filter(r=>r.path==='/checkout'&&r.ms>200).length);",
+      "expect": "canaryBrowseSlow=0 canaryCheckoutSlow=1 stableCheckoutSlow=7"
+    }
+  ]
+}

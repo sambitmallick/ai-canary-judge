@@ -1,0 +1,6 @@
+$ for x in E F G H; do echo "$x  v1: $(node judge/stats.js $x | tail -1)   v2: $(node judge/stats2.js $x | tail -1)"; done
+E  v1: VERDICT: ROLLBACK (/browse p99 latency, /search p99 latency)   v2: VERDICT: ROLLBACK (/search slow requests)
+F  v1: VERDICT: ROLLBACK (/checkout p99 latency)   v2: VERDICT: PROMOTE
+G  v1: VERDICT: ROLLBACK (/browse p99 latency, /checkout error rate)   v2: VERDICT: ROLLBACK (/checkout error rate)
+H  v1: VERDICT: PROMOTE   v2: VERDICT: PROMOTE
+[exit 0, 1s]

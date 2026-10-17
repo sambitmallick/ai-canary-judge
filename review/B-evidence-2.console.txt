@@ -1,0 +1,41 @@
+agent: canary judge   canary = B   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='function byPath(rs){const m={};for(const r of rs){const k=r.')
+   thought: Before deciding I should verify the dashboard's key claim in the raw log: that canary 5xx are real, concentrated on /checkout, sustained across the test, and ab
+   result : path | canary n/5xx | stable n/5xx
+            /browse | 1236/0 | 3695/0
+            /search | 736/0 | 2209/0
+            /checkout | 483/10 | 1455/0
+            TOTAL canary 5xx=10 stable 5xx=0
+            canary 5xx timestamps: 13,45,50,59,71,78,79,94,99,115
+            canary 5xx statuses: 500,500,500,500,500,500,500,500,500,500
+            canary 5xx latencies: 93,82,73,65,102,298,96,101,87,102
+            checkout p50/p95/p99 canary: 323/323/323
+            checkout p50/p95/p99 stable: 344/344/344
+             …
+── step 2 ── run_query(code="const e=canary.filter(r=>r.status>=500);\nprint('Q1: canary 5")
+   thought: Step 1 already showed the decisive signal: 10 5xx on the canary, all 500s, all on /checkout, vs 0 on stable, spread over the whole run. Before writing the file 
+   result : Q1: canary 5xx total=10 paths=/checkout statuses=500 stable 5xx total=0/7359
+            Q2: canary /checkout 10/483=2.07% stable /checkout 0/1455=0.00%
+            Q3: canary 5xx window=1,3,3,3
+            Q4: p95 canary=96 stable=94 within5ms=true
+── step 3 ── write_file(path='review/B-evidence-2/decision.json')
+   thought: Evidence is settled: canary emitted 10 HTTP 500s (stable 0), all on /checkout (2.07% vs 0.00%), spread across all four 30s windows, while latency is effectively
+   result : wrote review/B-evidence-2/decision.json
+── step 4 ── done(summary='Decision: ROLLBACK (written to review/B-evidence-2/decision.')
+   thought: The decision file is written with ROLLBACK and claims whose queries I already executed in step 2 (outputs Q1–Q4 matched the expect strings I used). Nothing furt
+   result : NOT DONE --
+            claim 4 NOT VERIFIED: "Latency is comparable between versions: canary p95 is 96ms vs stable p95 94ms." -- expected "p95 canary=96 stable=94", query printed "p95 canary=323 stable=344"
+── step 5 ── run_query(code='function p(a,q){const s=a.slice().sort((x,y)=>x-y);const i=M')
+   thought: Claim 4 failed because the query I stored in the file used pct() in a way that returned max latency (323/344) instead of the p95 I saw in step 2. Before rewriti
+   result : ALL p50 canary=28 stable=32
+            ALL p95 canary=96 stable=94
+            ALL p99 canary=105 stable=104
+            CHECKOUT p50 canary=83 stable=82 p95 canary=104 stable=104
+            pct-check 0.95: 96 / 94  pct 95: 323 / 344
+── step 6 ── write_file(path='review/B-evidence-2/decision.json')
+   thought: The harness rejected claim 4 because the built-in pct() takes a fraction (pct(arr,0.95)=96/94) while I passed 95, which returned the max (323/344). My own ceil-
+   result : wrote review/B-evidence-2/decision.json
+── step 7 ── done(summary='Decision: ROLLBACK, written to review/B-evidence-2/decision.')
+   thought: Step 5 confirmed that pct() takes the percentile as a fraction (0.95), which is why the earlier claim-4 query printed 323/344; the corrected form prints "p95 ca
+
+🟡 handing back to a human after 7 steps — decision: ROLLBACK

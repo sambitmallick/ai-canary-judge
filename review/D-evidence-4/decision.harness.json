@@ -1,0 +1,30 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "Canary /search p99 latency is 656ms versus 193ms for stable /search.",
+   "verified": true,
+   "output": "canary_search_p99=656 stable_search_p99=193"
+  },
+  {
+   "claim": "18 of 729 canary /search requests took over 400ms, while 0 of 2273 stable /search requests did.",
+   "verified": true,
+   "output": "canary_search_over400=18 of 729 stable_search_over400=0 of 2273"
+  },
+  {
+   "claim": "Neither version returned any 5xx response during the test.",
+   "verified": true,
+   "output": "canary_5xx=0 stable_5xx=0"
+  },
+  {
+   "claim": "The slow canary /search requests occur in every 30s window of the test: 7, 2, 5, 4.",
+   "verified": true,
+   "output": "window_slow_counts=7,2,5,4"
+  },
+  {
+   "claim": "Canary /search is bimodal: excluding the slow tail its maximum is 190ms, and the tail cluster starts at 633ms.",
+   "verified": true,
+   "output": "canary_search_excl_tail_max=190 tail_min=633"
+  }
+ ]
+}

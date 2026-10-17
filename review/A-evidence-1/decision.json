@@ -1,0 +1,36 @@
+{
+  "decision": "PROMOTE",
+  "why": "Facts (each one is a claim below): (1) there were zero 5xx and zero non-200 responses across all 9819 requests (7343 stable, 2476 canary); (2) over the whole test the canary p95 is 177ms vs stable 94ms; (3) that gap is confined to the first 30s, where canary p95=210ms vs stable p95=93ms; (4) from t>=60s onward the canary is indistinguishable from stable: canary p95=94ms vs stable 95ms, canary p99=104ms vs stable 104ms; (5) steady-state /checkout canary p95=103ms vs stable 104ms; (6) steady-state /browse canary p95=27ms vs stable 27ms and /search canary p95=59ms vs stable 59ms. Judgement: the only adverse signal is latency, it decays monotonically across the four 30s windows (210 -> 130 -> 95 -> 94 on the canary while stable sits flat at 93-95) and fully converges, which is the signature of a single freshly-started pod warming up (JIT, caches, connection pools) rather than a code regression; a regression would persist or worsen, and the slowest path (/checkout) converges to within 1ms of stable. Judgement: with no error-rate signal at all and converged tail latency on every endpoint, a rollback would block the release to protect customers from nothing, so promote. Judgement: the headline canary p95 of 177ms is an artifact of averaging the warmup into a 120s window and should not be read as the new steady state. Judgement: promote with a staged ramp and watch p95 during it; if elevated latency is still present more than ~60s after each new pod goes live, roll back, because that would falsify the warmup explanation.",
+  "claims": [
+    {
+      "claim": "There were zero 5xx and zero non-200 responses across all 9819 requests (7343 stable, 2476 canary).",
+      "query": "print('C1 5xx stable=' + stable.filter(r=>r.status>=500).length + ' canary=' + canary.filter(r=>r.status>=500).length + ' non200=' + rows.filter(r=>r.status!==200).length + ' total=' + rows.length);",
+      "expect": "C1 5xx stable=0 canary=0 non200=0 total=9819"
+    },
+    {
+      "claim": "Over the whole 120s test the canary p95 is 177ms versus stable 94ms.",
+      "query": "print('C2 overall canary p95=' + pct(canary.map(r=>r.ms),0.95) + ' stable p95=' + pct(stable.map(r=>r.ms),0.95));",
+      "expect": "C2 overall canary p95=177 stable p95=94"
+    },
+    {
+      "claim": "The latency gap is concentrated in the first 30s: canary p95=210ms vs stable p95=93ms.",
+      "query": "const win=(a,lo,hi)=>a.filter(r=>r.t>=lo&&r.t<hi).map(r=>r.ms);\nprint('C3 W0-30 canary p95=' + pct(win(canary,0,30),0.95) + ' stable p95=' + pct(win(stable,0,30),0.95));",
+      "expect": "C3 W0-30 canary p95=210 stable p95=93"
+    },
+    {
+      "claim": "From t>=60s the canary matches stable: canary p95=94ms vs stable 95ms, canary p99=104ms vs stable 104ms.",
+      "query": "const s=a=>a.filter(r=>r.t>=60).map(r=>r.ms);\nprint('C4 steady canary p95=' + pct(s(canary),0.95) + ' stable p95=' + pct(s(stable),0.95) + ' canary p99=' + pct(s(canary),0.99) + ' stable p99=' + pct(s(stable),0.99));",
+      "expect": "C4 steady canary p95=94 stable p95=95 canary p99=104 stable p99=104"
+    },
+    {
+      "claim": "Steady-state (t>=60s) /checkout p95 is 103ms on the canary versus 104ms on stable.",
+      "query": "const s=(a,p)=>a.filter(r=>r.t>=60&&r.path===p).map(r=>r.ms);\nprint('C5 checkout60 canary p95=' + pct(s(canary,'/checkout'),0.95) + ' stable p95=' + pct(s(stable,'/checkout'),0.95));",
+      "expect": "C5 checkout60 canary p95=103 stable p95=104"
+    },
+    {
+      "claim": "Steady-state (t>=60s) /browse p95 is 27ms on both versions and /search p95 is 59ms on both versions.",
+      "query": "const s=(a,p)=>a.filter(r=>r.t>=60&&r.path===p).map(r=>r.ms);\nprint('C6 browse60 canary p95=' + pct(s(canary,'/browse'),0.95) + ' stable p95=' + pct(s(stable,'/browse'),0.95) + ' search60 canary p95=' + pct(s(canary,'/search'),0.95) + ' stable p95=' + pct(s(stable,'/search'),0.95));",
+      "expect": "C6 browse60 canary p95=27 stable p95=27 search60 canary p95=59 stable p95=59"
+    }
+  ]
+}

@@ -49,7 +49,7 @@ Reply with JSON only: {{"thought": "...", "tool": "...", "args": {{...}}}}"""
 
 TOOL_DOCS = {
     "run_query": """  run_query(code)            -> runs a JavaScript snippet over THIS canary's raw request log and returns what it
-                                printed. Names available: rows (every request: {t, path, version, status, ms}; t = seconds
+                                printed. Names available: rows (every request: {{t, path, version, status, ms}}; t = seconds
                                 since the test started; version "1.0" = stable, "1.1" = canary), stable, canary (rows of
                                 each version), pct(numbers, p) for percentiles, print(...). No require, no files.""",
     "write_file": "  write_file(path, content)  -> write your decision. Only {report} is writable.",
@@ -97,13 +97,17 @@ def check_decision(mode: str, canary: str) -> tuple:
     return True, f"decision: {d['decision']}", {"decision": d["decision"], "claims": checked}
 
 
+def build_system(mode: str) -> str:
+    return SYSTEM.format(tools="\n".join(TOOL_DOCS[n].format(report=REPORT) for n in tools_for(mode)))
+
+
 def run(canary: str, mode: str, max_steps: int = MAX_STEPS) -> int:
     dashboard = (PROJECT / "metrics" / f"canary-{canary}.dashboard.txt").read_text(encoding="utf-8")
     goal = INTRO.format(dashboard=dashboard) + SCHEMAS[mode].format(report=REPORT)
     names = tools_for(mode)
     A.ACTION_SCHEMA = {"type": "object", "properties": {"thought": {"type": "string"}, "tool": {"type": "string", "enum": names},
                        "args": {"type": "object"}}, "required": ["thought", "tool", "args"], "additionalProperties": False}
-    system = SYSTEM.format(tools="\n".join(TOOL_DOCS[n].format(report=REPORT) for n in names))
+    system = build_system(mode)
     A.RUNS.mkdir(exist_ok=True)
     log_path = (PROJECT / REPORT).with_name("log.jsonl"); log_path.parent.mkdir(parents=True, exist_ok=True)
     history, seen = [], {}

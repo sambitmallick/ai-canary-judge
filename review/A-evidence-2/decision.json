@@ -1,0 +1,31 @@
+{
+  "decision": "PROMOTE",
+  "why": "Facts, each backed by a claim below. (1) Correctness is clean: every request in the log returned HTTP 200 - zero 5xx and zero non-200 responses on both stable and canary. (2) The canary was genuinely slow early: in the first 30 s its p95 was more than 2x the stable p95 in the same window. (3) That slowness did not persist: from 60 s to the end of the test the canary p95 is within 10 ms of the stable p95, measured over more than 1000 canary requests. (4) Slow canary requests (>150 ms) are more than 10x more frequent in the first 30 s than after 60 s, i.e. they are front-loaded rather than spread across the test. (5) The money path shows no steady-state regression either: after 60 s the canary p95 on /checkout is not more than 10 ms above the stable p95 on /checkout. JUDGEMENT: this is the signature of pod warm-up (cold caches / JIT / connection pools on a freshly started single pod), not a defect in 1.1 - a real regression would persist or worsen over the 120 s window and would show up in the last two windows, which it does not. The headline aggregate numbers (canary p95 177 ms vs stable 94 ms) are inflated by averaging the warm-up period into the whole run; the steady state is what 100% traffic would look like. JUDGEMENT on risk: promoting costs a transient latency bump on the new pods as they warm, with no error-rate risk observed; rolling back would block the release over a startup artefact. Residual risk I accept: this test did not exercise a full-fleet rollout, so I would promote with a staged rollout and keep an alert on p95 for the first few minutes after each pod starts, and roll back if elevated p95 outlasts the first 60 s of a pod's life.",
+  "claims": [
+    {
+      "claim": "Every request in the log returned HTTP 200: zero 5xx and zero non-200 responses on both stable (1.0) and canary (1.1).",
+      "query": "const s5=stable.filter(r=>r.status>=500).length; const c5=canary.filter(r=>r.status>=500).length; const sn=stable.filter(r=>r.status!==200).length; const cn=canary.filter(r=>r.status!==200).length; print('ERRORS 5xx stable='+s5+' canary='+c5+' non200 stable='+sn+' canary='+cn+' allOk='+(s5+c5+sn+cn===0));",
+      "expect": "allOk=true"
+    },
+    {
+      "claim": "In the first 30 s of the test the canary p95 was more than twice the stable p95 over the same window.",
+      "query": "const w=(rs,a,b)=>rs.filter(r=>r.t>=a&&r.t<b).map(r=>r.ms); const cf=pct(w(canary,0,30),0.95); const sf=pct(w(stable,0,30),0.95); print('FIRST30 canary p95='+cf+' stable p95='+sf+' canarySlower2x='+(cf>2*sf));",
+      "expect": "canarySlower2x=true"
+    },
+    {
+      "claim": "From 60 s onward the canary p95 is within 10 ms of the stable p95, over more than 1000 canary requests.",
+      "query": "const w=(rs,a,b)=>rs.filter(r=>r.t>=a&&r.t<b).map(r=>r.ms); const c=w(canary,60,1e9); const s=w(stable,60,1e9); const cp=pct(c,0.95); const sp=pct(s,0.95); print('AFTER60 canary p95='+cp+' stable p95='+sp+' nCanary='+c.length+' nStable='+s.length+' converged='+(cp<=sp+10)+' enough='+(c.length>=1000));",
+      "expect": "converged=true enough=true"
+    },
+    {
+      "claim": "Canary requests slower than 150 ms are more than 10x more frequent in the first 30 s than after 60 s, so the slowness is front-loaded.",
+      "query": "const f=canary.filter(r=>r.t<30&&r.ms>150).length; const a=canary.filter(r=>r.t>=60&&r.ms>150).length; print('SLOW150 canaryFirst30='+f+' canaryAfter60='+a+' frontLoaded='+(f>10*a));",
+      "expect": "frontLoaded=true"
+    },
+    {
+      "claim": "After 60 s the canary p95 on /checkout is not more than 10 ms above the stable p95 on /checkout.",
+      "query": "const co=rs=>rs.filter(r=>r.t>=60&&r.path==='/checkout').map(r=>r.ms); const c=co(canary); const s=co(stable); const cp=pct(c,0.95); const sp=pct(s,0.95); print('AFTER60 /checkout canary p95='+cp+' n='+c.length+' stable p95='+sp+' n='+s.length+' noRegression='+(cp<=sp+10));",
+      "expect": "noRegression=true"
+    }
+  ]
+}

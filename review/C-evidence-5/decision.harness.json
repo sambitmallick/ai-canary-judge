@@ -1,0 +1,35 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "Zero errors: across all 9785 requests in the log there were no 5xx and no non-200 responses on either version (stable 7374 requests, canary 2411).",
+   "verified": true,
+   "output": "C1 total=9785 stable=7374 canary=2411 5xx=0 non200=0\nC1 VERDICT zero_errors true"
+  },
+  {
+   "claim": "Canary overall latency matches stable: canary p50 34 ms / p95 93 ms vs stable p50 34 ms / p95 94 ms, so canary p95 is within 5 ms of stable.",
+   "verified": true,
+   "output": "C2 stable n=7374 p50=34 p95=94 p99=104\nC2 canary n=2411 p50=34 p95=93 p99=105\nC2 VERDICT canary_overall_p95_within_5ms true"
+  },
+  {
+   "claim": "Per-endpoint p95 is within 5 ms of stable on all three endpoints (/browse 27 vs 27 ms, /search 59 vs 59 ms, /checkout 104 vs 103 ms).",
+   "verified": true,
+   "output": "C3 /browse stable n=3672 p50=22 p95=27 | canary n=1200 p50=22 p95=27 diff_p95=0\nC3 /search stable n=2211 p50=47 p95=59 | canary n=749 p50=47 p95=59 diff_p95=0\nC3 /checkout stable n=1491 p50=81 p95=103 | canary n=462 p50=82 p95=104 diff_p95=1\nC3 VERDICT all_paths_p95_within_5ms true"
+  },
+  {
+   "claim": "Worst-case latency is not worse on the canary: the maximum observed latency is 339 ms on both stable and canary.",
+   "verified": true,
+   "output": "C4 max_ms stable=339 canary=339\nC4 VERDICT canary_max_not_worse true"
+  },
+  {
+   "claim": "No regression over time: in each of the four 30 s windows the canary p95 stays within 10 ms of the stable p95 and both versions logged zero 5xx.",
+   "verified": true,
+   "output": "C5 win0-30s canary n=599 p95=92 | stable n=1850 p95=94 5xx=0\nC5 win30-60s canary n=588 p95=92 | stable n=1858 p95=94 5xx=0\nC5 win60-90s canary n=611 p95=93 | stable n=1832 p95=95 5xx=0\nC5 win90-120s canary n=613 p95=96 | stable n=1834 p95=92 5xx=0\nC5 VERDICT no_window_regression_within_10ms true"
+  },
+  {
+   "claim": "The canary /browse p99 is higher than stable's (77 ms vs 28 ms), but no canary /browse request exceeded stable's worst /browse request (max 87 ms on both) and no canary /browse request exceeded 100 ms.",
+   "verified": true,
+   "output": "C6 /browse n stable=3672 canary=1200 p99 stable=28 canary=77 max stable=87 canary=87 canary_over_100ms=0\nC6 VERDICT browse_p99_higher_but_worst_case_not_worse true"
+  }
+ ]
+}

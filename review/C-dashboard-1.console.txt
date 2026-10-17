@@ -1,0 +1,8 @@
+agent: canary judge   canary = C   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/C-dashboard-1/decision.json')
+   thought: The dashboard shows canary (2411 reqs) matching stable (7374 reqs) closely: 0 5xx on both, identical err% 0.00%, p50 34 vs 34, p95 93 vs 94, p99 105 vs 104. Per
+   result : wrote review/C-dashboard-1/decision.json
+── step 2 ── done(summary='Decision written to review/C-dashboard-1/decision.json: PROM')
+   thought: The decision file was already written in step 1 with PROMOTE and the supporting evidence. Nothing in the dashboard contradicts that: 0 5xx on both sides, per-ro
+
+🟡 handing back to a human after 2 steps — decision: PROMOTE

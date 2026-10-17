@@ -1,0 +1,40 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "There were zero 5xx responses on either version across all 9819 requests of the test.",
+   "verified": true,
+   "output": "5xx canary=0 stable=0 total=9819"
+  },
+  {
+   "claim": "Every logged response on both versions was HTTP 200.",
+   "verified": true,
+   "output": "statuses canary {\"200\":2476} stable {\"200\":7343}"
+  },
+  {
+   "claim": "In the first 30 s the canary p95 was 210 ms versus stable 93 ms.",
+   "verified": true,
+   "output": "FIRST30 canary p95=210 stable p95=93"
+  },
+  {
+   "claim": "The canary p95 decayed monotonically over the first six 10 s windows: 226, 203, 176, 143, 124, 95 ms.",
+   "verified": true,
+   "output": "DECAY 0-10s:226 10-20s:203 20-30s:176 30-40s:143 40-50s:124 50-60s:95"
+  },
+  {
+   "claim": "In the last 60 s the canary overall p95 was 94 ms versus stable 95 ms.",
+   "verified": true,
+   "output": "LAST60 canary p95=94 stable p95=95"
+  },
+  {
+   "claim": "In the last 60 s per-path p95 is at parity: /browse 27 vs 27, /search 59 vs 59, /checkout 103 vs 104 ms.",
+   "verified": true,
+   "output": "LAST60 /browse c27/s27 /search c59/s59 /checkout c103/s104"
+  },
+  {
+   "claim": "A residual tail remains: in the last 60 s /search p99 was 180 ms on the canary versus 61 ms on stable, over 400 canary samples.",
+   "verified": true,
+   "output": "LAST60 /search p99 canary=180 stable=61 n=400"
+  }
+ ]
+}

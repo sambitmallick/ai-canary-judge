@@ -1,0 +1,5 @@
+$ kubectl logs job/loadgen | grep '^{' > metrics/canary-A.jsonl && wc -l < metrics/canary-A.jsonl && node -e 'const rows=require("fs").readFileSync("metrics/canary-A.jsonl","utf8").trim().split("\n").map(JSON.parse); const by={}; for (const r of rows) (by[r.version] ||= []).push(r); for (const [v,rs] of Object.entries(by)) console.log("  version "+v+": "+rs.length+" requests ("+(100*rs.length/rows.length).toFixed(1)+"%)")'
+9819
+  version 1.0: 7343 requests (74.8%)
+  version 1.1: 2476 requests (25.2%)
+[exit 0, 1s]

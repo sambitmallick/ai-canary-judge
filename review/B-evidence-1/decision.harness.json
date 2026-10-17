@@ -1,0 +1,25 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "The canary (1.1) returned 10 HTTP 5xx responses while stable (1.0) returned 0 over the same test.",
+   "verified": true,
+   "output": "CANARY_5XX=10 STABLE_5XX=0"
+  },
+  {
+   "claim": "All canary 5xx responses were on /checkout: 10 of 483 canary checkout requests (2.07%) versus 0 of 1455 stable checkout requests.",
+   "verified": true,
+   "output": "CANARY_5XX_PATHS=[\"/checkout\"]\nCHECKOUT_CANARY=10/483 (2.07%) CHECKOUT_STABLE=0/1455"
+  },
+  {
+   "claim": "The canary 5xx responses occur in every 30 s window of the test (1, 3, 3, 3), not only at startup.",
+   "verified": true,
+   "output": "W0-30=1 W30-60=3 W60-90=3 W90-120=3 SUM=10"
+  },
+  {
+   "claim": "Canary latency is not worse than stable: the canary overall p95 is within 5 ms of the stable overall p95.",
+   "verified": true,
+   "output": "P95_CANARY=96 P95_STABLE=94\nCANARY_P95_WITHIN_5MS_OF_STABLE=true"
+  }
+ ]
+}

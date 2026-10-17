@@ -19,6 +19,15 @@ def check(name, cond):
 check("dashboard mode: only write_file + done (no file reading at all)", J.tools_for("dashboard") == ["write_file", "done"])
 check("evidence mode: adds run_query, still no file reading", J.tools_for("evidence") == ["run_query", "write_file", "done"])
 
+# the prompts build (ep27: evidence mode crashed on a brace in the tool docs before its first model call)
+for m in ("dashboard", "evidence"):
+    try:
+        sysp = J.build_system(m)
+        built = ("run_query" in sysp) if m == "evidence" else ("write_file" in sysp)
+    except Exception:
+        built = False
+    check(f"{m} mode: the system prompt builds", built)
+
 # the query sandbox
 out = J.run_query('print(canary.length > 0, stable.length > canary.length, rows.length === stable.length + canary.length)', "B")
 check("a query sees this canary's raw log, split by version", out == "true true true")

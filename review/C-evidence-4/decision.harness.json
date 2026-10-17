@@ -1,0 +1,25 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "Across all 9785 requests there were zero 5xx responses and zero non-200 responses on both versions (canary 2411 requests, stable 7374).",
+   "verified": true,
+   "output": "[C1] total=9785 canary_n=2411 stable_n=7374\n[C1] canary5xx=0 stable5xx=0 non200=0 ZERO_ERRORS_BOTH_VERSIONS"
+  },
+  {
+   "claim": "Per-endpoint p95 latency is at parity: the largest canary-vs-stable p95 gap across /browse, /search and /checkout is 1 ms.",
+   "verified": true,
+   "output": "[C2] /browse c_p95=27 s_p95=27 d=0 n=1200/3672 | /search c_p95=59 s_p95=59 d=0 n=749/2211 | /checkout c_p95=104 s_p95=103 d=1 n=462/1491\n[C2] worst_endpoint_p95_gap=1 ALL_ENDPOINT_P95_WITHIN_2MS"
+  },
+  {
+   "claim": "In every 30 s window of the 120 s test the canary p95 is within 5 ms of stable (worst delta 4 ms) and no window contains any 5xx.",
+   "verified": true,
+   "output": "[C3] 0-30s c_p95=92 s_p95=94 5xx=0 | 30-60s c_p95=92 s_p95=94 5xx=0 | 60-90s c_p95=93 s_p95=95 5xx=0 | 90-120s c_p95=96 s_p95=92 5xx=0\n[C3] worst_window_delta=4 window_5xx=0 ALL_WINDOWS_WITHIN_5MS_NO_5XX"
+  },
+  {
+   "claim": "The canary's higher /browse p99 sits under the same 87 ms maximum as stable and reflects only a higher slow-request rate (13/1200 = 1.08% of canary requests over 50 ms vs 15/3672 = 0.41% on stable), with no canary request above the stable ceiling.",
+   "verified": true,
+   "output": "[C4] browse canary p99=77 stable p99=28\n[C4] browse canary max=87 stable max=87 slow>50ms canary=13/1200 (1.08%) stable=15/3672 (0.41%)\n[C4] above_stable_ceiling=0 P99_ARTIFACT_SAME_CEILING"
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+agent: canary judge   canary = C   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/C-dashboard-2/decision.json')
+   thought: The dashboard shows no error-rate or latency regression for the canary: 0 5xx on both sides, aggregate p50/p95/p99 within 1-2 ms, and per-endpoint parity on /br
+   result : wrote review/C-dashboard-2/decision.json
+── step 2 ── done(summary='Wrote review/C-dashboard-2/decision.json with decision PROMO')
+   thought: The decision file was already written in step 1 with PROMOTE. The dashboard evidence supports it: canary 2411 reqs, 0 5xx (0.00% err) matching stable's 0; aggre
+
+🟡 handing back to a human after 2 steps — decision: PROMOTE

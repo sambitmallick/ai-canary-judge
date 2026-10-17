@@ -1,0 +1,17 @@
+agent: canary judge   canary = D   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/D-dashboard-5/decision.json')
+   thought: Evidence from the dashboard: canary has 0 5xx across 2384 requests (0.00%, same as stable's 7404), aggregate p50 33ms vs 35ms and p95 95ms vs 95ms — i.e. equal 
+   result : wrote review/D-dashboard-5/decision.json
+── step 2 ── write_file(path='review/D-dashboard-5/decision.json')
+   thought: The file exists but step 1's content was truncated in the log, so I can't confirm it addresses the one real anomaly on this dashboard: canary /search p99 = 652m
+   result : wrote review/D-dashboard-5/decision.json
+── step 3 ── write_file(path='review/D-dashboard-5/decision.json')
+   thought: Re-examining the one place the canary deviates: /search p99 = 652 ms vs stable 61 ms, and overall canary p99 172 vs stable 104. Stable's entire 2273-request /se
+   result : wrote review/D-dashboard-5/decision.json
+── step 4 ── write_file(path='review/D-dashboard-5/decision.json')
+   thought: I have flip-flopped (PROMOTE, PROMOTE, ROLLBACK). Time to settle with one clean, final write and then finish. Re-checking the numbers: the only anomaly is canar
+   result : wrote review/D-dashboard-5/decision.json
+── step 5 ── done(summary='Decision written to review/D-dashboard-5/decision.json: ROLL')
+   thought: The decision file already contains my settled answer (ROLLBACK, written in step 4 and marked final). Re-checking the evidence once more before closing: errors a
+
+🟡 handing back to a human after 5 steps — decision: ROLLBACK

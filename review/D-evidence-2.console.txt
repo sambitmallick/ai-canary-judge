@@ -1,0 +1,33 @@
+agent: canary judge   canary = D   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code="const cs = canary.filter(r=>r.path=='/search');\nconst ss = s")
+   thought: The only anomaly in the dashboard is canary /search p99 = 652ms vs stable 61ms, while p95 is normal. I need to see how many requests are slow, how slow, and whe
+   result : canary /search n= 729 stable /search n= 2273
+            canary pct 50:656 90:656 95:656 99:656 99.9:656
+            stable pct 50:193 90:193 95:193 99:193 99.9:193
+            canary /search >200ms count= 18 pctOfCanarySearch= 2.47%
+            stable /search >200ms count= 0
+            canary slow ms sorted: 633,633,638,638,639,640,643,643,647,651,652,652,653,653,653,655,655,656
+            canary slow times t: 3,5,7,18,20,20,29,33,56,60,73,79,83,87,95,97,108,113
+            ca …
+── step 2 ── run_query(code="const cs = canary.filter(r=>r.path=='/search').map(r=>r.ms).")
+   thought: I already know the core signal: canary /search has 18/729 requests at ~633-656 ms, all HTTP 200, spread over the whole test, while stable /search has 0 requests
+   result : C1 CANARY_SEARCH_OVER_200MS=18/729 STABLE_SEARCH_OVER_200MS=0/2273 canary_slow_min=633 canary_slow_max=656 stable_search_max=193
+            C2 CANARY_SEARCH_P99=656 STABLE_SEARCH_P99=193 RATIO_GE_5=false
+            C3 CANARY_5XX=0 STABLE_5XX=0 CANARY_N=2384 STABLE_N=7404
+            C4 WINDOW_COUNTS=7,2,5,4 ALL_FOUR_WINDOWS=true first_t=3.18 last_t=113.3
+            C5 OVERALL_P95 canary=656 stable=343 DIFF_LE_5=false
+            C6 BROWSE_P99 c=87 s=87  …
+── step 3 ── run_query(code='const q=(a,p)=>{const v=a.map(r=>r.ms).sort((x,y)=>x-y);retu')
+   thought: The dashboard's overall p95 hides the real signal: 18/729 canary /search requests sit at ~633-656 ms while stable /search never exceeds 193 ms. Before writing t
+   result : C1 SLOW c=18/729 s=0/2273 c_slow_range=633-656 s_max=193
+            C2 P99 c=652 s=61 RATIO_GE_8=true P50 c=47 s=47 P50_DIFF_LE_5=true
+            C3 SLOW_STATUSES=200 CANARY_5XX=0 STABLE_5XX=0
+            C4 WINDOWS=7,2,5,4 ALL4=true first_t=3.2 last_t=113.3
+            C5 /browse c_p99=30 s_p99=28 /checkout c_p99=105 s_p99=106 OTHER_OK=true
+── step 4 ── write_file(path='review/D-evidence-2/decision.json')
+   thought: I have all the evidence I need from the three probes. The canary is clean on errors and on p50/p95, but /search carries a hidden tail: 18/729 (2.47%) requests a
+   result : wrote review/D-evidence-2/decision.json
+── step 5 ── done(summary='Decision: ROLLBACK, written to review/D-evidence-2/decision.')
+   thought: The decision file is already written with ROLLBACK plus claims whose queries I executed in steps 2-3, and their outputs printed the expect strings. Nothing left
+
+🟡 handing back to a human after 5 steps — decision: ROLLBACK

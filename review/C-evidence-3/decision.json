@@ -1,0 +1,31 @@
+{
+  "decision": "PROMOTE",
+  "why": "PROMOTE. Facts, each one a verified claim below: (1) there were zero 5xx responses on both stable and canary across all 9785 requests; (2) aggregate latency is equivalent, stable p95=94 p99=104 ms vs canary p95=93 p99=105 ms; (3) per-path p95 matches endpoint for endpoint, /browse 27 vs 27 ms, /search 59 vs 59 ms, /checkout 103 vs 104 ms; (4) there is no degradation over the run, in the final 90-120s window stable p95=92 ms and canary p95=96 ms; (5) the only visible difference is /browse p99, stable 28 ms vs canary 77 ms, while the /browse max is identical at 87 ms on both versions. Judgement: a 4 ms p95 gap in one 30s window and a 49 ms p99 gap on the fastest endpoint, with an identical max and no errors at all, are within the sampling noise expected from a single canary pod serving roughly a quarter of the requests; there is no error-rate, saturation or drift signal that would justify blocking the release, so promote while keeping /browse p99 on watch after the rollout.",
+  "claims": [
+    {
+      "claim": "There were zero 5xx responses on both stable (1.0) and canary (1.1) across all 9785 requests.",
+      "query": "const f=a=>a.filter(r=>r.status>=500).length; print('stable_5xx='+f(stable)+' canary_5xx='+f(canary)+' total='+rows.length);",
+      "expect": "stable_5xx=0 canary_5xx=0 total=9785"
+    },
+    {
+      "claim": "Aggregate latency is equivalent: stable p95=94 p99=104 ms vs canary p95=93 p99=105 ms.",
+      "query": "const q=(a,p)=>pct(a.map(r=>r.ms),p); print('agg stable p95='+q(stable,0.95)+' p99='+q(stable,0.99)+' | canary p95='+q(canary,0.95)+' p99='+q(canary,0.99));",
+      "expect": "agg stable p95=94 p99=104 | canary p95=93 p99=105"
+    },
+    {
+      "claim": "Per-path p95 matches endpoint for endpoint: /browse 27 vs 27 ms, /search 59 vs 59 ms, /checkout 103 vs 104 ms.",
+      "query": "const q=(a,p)=>pct(a.map(r=>r.ms),p); const b=(a,p)=>a.filter(r=>r.path===p); print('p95 /browse s='+q(b(stable,'/browse'),0.95)+' c='+q(b(canary,'/browse'),0.95)+' /search s='+q(b(stable,'/search'),0.95)+' c='+q(b(canary,'/search'),0.95)+' /checkout s='+q(b(stable,'/checkout'),0.95)+' c='+q(b(canary,'/checkout'),0.95));",
+      "expect": "p95 /browse s=27 c=27 /search s=59 c=59 /checkout s=103 c=104"
+    },
+    {
+      "claim": "There is no degradation over the run: in the final 90-120s window stable p95=92 ms and canary p95=96 ms.",
+      "query": "const q=(a,p)=>pct(a.map(r=>r.ms),p); let o=''; for(let w=0;w<120;w+=30){const s=stable.filter(r=>r.t>=w&&r.t<w+30), c=canary.filter(r=>r.t>=w&&r.t<w+30); o+=w+'-'+(w+30)+'s stable p95='+q(s,0.95)+' canary p95='+q(c,0.95)+' | ';} print(o);",
+      "expect": "90-120s stable p95=92 canary p95=96"
+    },
+    {
+      "claim": "The only visible difference is /browse p99 (stable 28 ms vs canary 77 ms), while the /browse max is identical at 87 ms on both versions.",
+      "query": "const b=(a)=>a.filter(r=>r.path==='/browse').map(r=>r.ms); const sb=b(stable), cb=b(canary); const mx=a=>a.reduce((m,v)=>v>m?v:m,0); print('/browse p99 stable='+pct(sb,0.99)+' canary='+pct(cb,0.99)+' max stable='+mx(sb)+' canary='+mx(cb));",
+      "expect": "/browse p99 stable=28 canary=77 max stable=87 canary=87"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+$ for x in A B C D; do node judge/stats.js $x; echo; done
+CANARY A  (bake-in 60s)
+  /browse    errors canary 0/1181 vs stable 0/3616  p=1.0000 ok   | p99 after bake-in canary 28ms vs stable 29ms ok
+  /search    errors canary 0/781 vs stable 0/2232  p=1.0000 ok   | p99 after bake-in canary 180ms vs stable 61ms FAIL
+  /checkout  errors canary 0/514 vs stable 0/1495  p=1.0000 ok   | p99 after bake-in canary 105ms vs stable 307ms ok
+VERDICT: ROLLBACK (/search p99 latency)
+
+CANARY B  (bake-in 60s)
+  /browse    errors canary 0/1236 vs stable 0/3695  p=1.0000 ok   | p99 after bake-in canary 28ms vs stable 28ms ok
+  /search    errors canary 0/736 vs stable 0/2209  p=1.0000 ok   | p99 after bake-in canary 61ms vs stable 61ms ok
+  /checkout  errors canary 10/483 vs stable 0/1455  p=0.0000 FAIL | p99 after bake-in canary 105ms vs stable 106ms ok
+VERDICT: ROLLBACK (/checkout error rate)
+
+CANARY C  (bake-in 60s)
+  /browse    errors canary 0/1200 vs stable 0/3672  p=1.0000 ok   | p99 after bake-in canary 28ms vs stable 28ms ok
+  /search    errors canary 0/749 vs stable 0/2211  p=1.0000 ok   | p99 after bake-in canary 61ms vs stable 61ms ok
+  /checkout  errors canary 0/462 vs stable 0/1491  p=1.0000 ok   | p99 after bake-in canary 106ms vs stable 105ms ok
+VERDICT: PROMOTE
+
+CANARY D  (bake-in 60s)
+  /browse    errors canary 0/1190 vs stable 0/3602  p=1.0000 ok   | p99 after bake-in canary 29ms vs stable 28ms ok
+  /search    errors canary 0/729 vs stable 0/2273  p=1.0000 ok   | p99 after bake-in canary 647ms vs stable 61ms FAIL
+  /checkout  errors canary 0/465 vs stable 0/1529  p=1.0000 ok   | p99 after bake-in canary 104ms vs stable 106ms ok
+VERDICT: ROLLBACK (/search p99 latency)
+
+[exit 0, 0s]

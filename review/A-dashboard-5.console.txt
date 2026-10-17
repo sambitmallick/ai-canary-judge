@@ -1,0 +1,8 @@
+agent: canary judge   canary = A   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/A-dashboard-5/decision.json')
+   thought: The aggregate canary latency looks bad (p95 177ms vs 94ms stable), but the over-time breakdown shows canary p95 decaying 210 -> 130 -> 95 -> 94 and matching sta
+   result : wrote review/A-dashboard-5/decision.json
+── step 2 ── done(summary='Decision written to review/A-dashboard-5/decision.json: PROM')
+   thought: The decision file was already written in step 1 with PROMOTE. The dashboard evidence supports it: zero 5xx on both arms across all routes, and the canary's elev
+
+🟡 handing back to a human after 2 steps — decision: PROMOTE

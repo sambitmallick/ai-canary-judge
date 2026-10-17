@@ -1,0 +1,30 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "The canary (1.1) returned 10 responses with status >= 500 during the test; the stable pods (1.0) returned 0.",
+   "verified": true,
+   "output": "canary 5xx 10 stable 5xx 0"
+  },
+  {
+   "claim": "Every canary 5xx was on the /checkout path (exactly one distinct failing path).",
+   "verified": true,
+   "output": "canary 5xx paths /checkout distinct 1"
+  },
+  {
+   "claim": "On /checkout the canary failed 10 of 483 requests (2.07%) while stable failed 0 of 1455 (0.00%).",
+   "verified": true,
+   "output": "canary /checkout 5xx 10 of 483 = 2.07% | stable /checkout 5xx 0 of 1455 = 0.00%"
+  },
+  {
+   "claim": "The canary 5xx errors are spread across 5 of the 6 twenty-second windows of the 120 s test, so they are not a single startup blip.",
+   "verified": true,
+   "output": "5xx count 10 windows with 5xx 5 of 6"
+  },
+  {
+   "claim": "Canary overall p95 latency is not more than 20 ms worse than stable overall p95 latency, so latency is not the reason for the decision.",
+   "verified": true,
+   "output": "p95 canary 96 p95 stable 94 canary p95 more than 20ms worse? false"
+  }
+ ]
+}

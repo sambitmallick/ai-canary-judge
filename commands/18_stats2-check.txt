@@ -1,0 +1,26 @@
+$ for x in A B C D; do node judge/stats2.js $x; echo; done
+CANARY A  (bake-in 60s, slow = slower than 2x stable p99)
+  /browse    errors 0/1181 vs 0/3616 p=1.0000 ok   | slow (>58ms) canary 2/593 vs stable 9/1792 p=0.8007 ok
+  /search    errors 0/781 vs 0/2232 p=1.0000 ok   | slow (>122ms) canary 5/400 vs stable 7/1124 p=0.1836 ok
+  /checkout  errors 0/514 vs 0/1495 p=1.0000 ok   | slow (>614ms) canary 0/268 vs stable 0/735 p=1.0000 ok
+VERDICT: PROMOTE
+
+CANARY B  (bake-in 60s, slow = slower than 2x stable p99)
+  /browse    errors 0/1236 vs 0/3695 p=1.0000 ok   | slow (>56ms) canary 4/619 vs stable 8/1879 p=0.3442 ok
+  /search    errors 0/736 vs 0/2209 p=1.0000 ok   | slow (>122ms) canary 3/388 vs stable 5/1108 p=0.3448 ok
+  /checkout  errors 10/483 vs 0/1455 p=0.0000 FAIL | slow (>212ms) canary 1/222 vs stable 2/696 p=0.5646 ok
+VERDICT: ROLLBACK (/checkout error rate)
+
+CANARY C  (bake-in 60s, slow = slower than 2x stable p99)
+  /browse    errors 0/1200 vs 0/3672 p=1.0000 ok   | slow (>56ms) canary 5/601 vs stable 8/1823 p=0.2003 ok
+  /search    errors 0/749 vs 0/2211 p=1.0000 ok   | slow (>122ms) canary 3/374 vs stable 6/1092 p=0.4137 ok
+  /checkout  errors 0/462 vs 0/1491 p=1.0000 ok   | slow (>210ms) canary 2/249 vs stable 3/751 p=0.3651 ok
+VERDICT: PROMOTE
+
+CANARY D  (bake-in 60s, slow = slower than 2x stable p99)
+  /browse    errors 0/1190 vs 0/3602 p=1.0000 ok   | slow (>56ms) canary 3/599 vs stable 11/1821 p=0.7124 ok
+  /search    errors 0/729 vs 0/2273 p=1.0000 ok   | slow (>122ms) canary 13/346 vs stable 1/1094 p=0.0000 FAIL
+  /checkout  errors 0/465 vs 0/1529 p=1.0000 ok   | slow (>212ms) canary 0/244 vs stable 4/790 p=1.0000 ok
+VERDICT: ROLLBACK (/search slow requests)
+
+[exit 0, 1s]

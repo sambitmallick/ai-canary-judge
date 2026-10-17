@@ -1,0 +1,11 @@
+agent: canary judge   canary = A   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/A-dashboard-2/decision.json')
+   thought: The aggregate canary numbers look bad (p95 177 vs 94), but the time-series decomposes that: canary p95 goes 210 -> 130 -> 95 -> 94 while stable sits flat at ~93
+   result : wrote review/A-dashboard-2/decision.json
+── step 2 ── write_file(path='review/A-dashboard-2/decision.json')
+   thought: The direct write_file call failed because write_file is only reachable through this structured-output channel, not as a native tool. The decision file already e
+   result : wrote review/A-dashboard-2/decision.json
+── step 3 ── done(summary='Decision written to review/A-dashboard-2/decision.json: PROM')
+   thought: The decision file has already been written (step 2) with the full evidence-based rationale for PROMOTE. Re-checking the dashboard confirms the call: zero 5xx on
+
+🟡 handing back to a human after 3 steps — decision: PROMOTE

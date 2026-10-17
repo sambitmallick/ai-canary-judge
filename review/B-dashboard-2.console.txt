@@ -1,0 +1,8 @@
+agent: canary judge   canary = B   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/B-dashboard-2/decision.json')
+   thought: The latency story is clean: canary p50/p95/p99 match stable on every route and in every 30s window (canary p95 95-97ms vs stable 92-96ms). So this is not a perf
+   result : wrote review/B-dashboard-2/decision.json
+── step 2 ── done(summary='Decision written to review/B-dashboard-2/decision.json: ROLL')
+   thought: The decision file was already written in step 1 with ROLLBACK. The evidence supports it: canary shows 10 5xx (0.41% overall) while stable shows 0 across 7359 re
+
+🟡 handing back to a human after 2 steps — decision: ROLLBACK

@@ -1,0 +1,8 @@
+agent: canary judge   canary = B   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/B-dashboard-5/decision.json')
+   thought: Evidence: canary has 10 5xx (0.41% overall) vs stable 0 across 7359 requests. All 10 errors are on /checkout = 2.07% error rate there, while stable /checkout ha
+   result : wrote review/B-dashboard-5/decision.json
+── step 2 ── done(summary='Wrote review/B-dashboard-5/decision.json with decision=ROLLB')
+   thought: The decision file is already written with ROLLBACK, which the evidence supports: canary 1.1 produced 10 5xx (all on /checkout, 2.07% of 483 checkout requests) w
+
+🟡 handing back to a human after 2 steps — decision: ROLLBACK

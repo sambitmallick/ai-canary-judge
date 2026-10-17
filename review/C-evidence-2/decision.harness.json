@@ -1,0 +1,25 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "Zero 5xx responses in the whole test: 0 of 7374 stable (1.0) requests and 0 of 2411 canary (1.1) requests failed, across 9785 total requests.",
+   "verified": true,
+   "output": "STABLE n=7374 5xx=0\nCANARY n=2411 5xx=0\nROWS n=9785 TOTAL_5XX=0"
+  },
+  {
+   "claim": "Canary and stable latency are at parity: per-endpoint and overall p50/p95 differ by at most 1 ms.",
+   "verified": true,
+   "output": "/browse p50 stable=22 canary=22 delta=0\n/browse p95 stable=27 canary=27 delta=0\n/search p50 stable=47 canary=47 delta=0\n/search p95 stable=59 canary=59 delta=0\n/checkout p50 stable=81 canary=82 delta=1\n/checkout p95 stable=103 canary=104 delta=1\nALL p50 stable=34 canary=34 delta=0\nALL p95 stable=94 "
+  },
+  {
+   "claim": "On /browse the canary has a higher slow-request rate (13/1200 = 1.08%) than stable (15/3672 = 0.41%), but the tail is bounded at the same 87 ms maximum as stable, below the overall stable p95 of 94 ms, and the slow requests are spread across the full 120 s run.",
+   "verified": true,
+   "output": "STABLE /browse n=3672 slow=15 rate=0.41%\nCANARY /browse n=1200 slow=13 rate=1.08%\nSTABLE_BROWSE_MAX_MS=87 CANARY_BROWSE_MAX_MS=87\nSTABLE_ALL_P95_MS=94\ncanary slow times(s)=2,11,12,18,29,50,59,59,75,89,93,110,115"
+  },
+  {
+   "claim": "No degradation over time: in every 30 s window the canary-vs-stable p95 gap is at most 4 ms and both versions have 0 5xx.",
+   "verified": true,
+   "output": "win 0-30s stableP95=94 canaryP95=92 delta=2 stable5xx=0 canary5xx=0\nwin 30-60s stableP95=94 canaryP95=92 delta=2 stable5xx=0 canary5xx=0\nwin 60-90s stableP95=95 canaryP95=93 delta=2 stable5xx=0 canary5xx=0\nwin 90-120s stableP95=92 canaryP95=96 delta=4 stable5xx=0 canary5xx=0\nMAXWINDOW_P95_DELTA_MS=4"
+  }
+ ]
+}

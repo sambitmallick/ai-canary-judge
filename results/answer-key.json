@@ -1,0 +1,34 @@
+{
+ "A": {
+  "fault": "warmup",
+  "correct": "PROMOTE"
+ },
+ "B": {
+  "fault": "errors",
+  "correct": "ROLLBACK"
+ },
+ "C": {
+  "fault": "none",
+  "correct": "PROMOTE"
+ },
+ "D": {
+  "fault": "slow",
+  "correct": "ROLLBACK"
+ },
+ "E": {
+  "fault": "slow",
+  "correct": "ROLLBACK"
+ },
+ "F": {
+  "fault": "none",
+  "correct": "PROMOTE"
+ },
+ "G": {
+  "fault": "errors",
+  "correct": "ROLLBACK"
+ },
+ "H": {
+  "fault": "warmup",
+  "correct": "PROMOTE"
+ }
+}

@@ -1,0 +1,41 @@
+{
+  "decision": "PROMOTE",
+  "why": "Correctness is clean: 5xx canary=0 stable=0 across all 9819 requests, and every logged response on both versions was HTTP 200. The headline canary latency gap is a start-up transient, not a regression. In the first 30 s the canary p95 was 210 ms vs stable 93 ms, and the canary p95 decayed monotonically window by window (0-10s:226 10-20s:203 20-30s:176 30-40s:143 40-50s:124 50-60s:95) until it met stable. In the steady state of the last 60 s the canary is at parity: canary p95=94 ms vs stable p95=95 ms overall, and per path /browse 27 vs 27, /search 59 vs 59, /checkout 103 vs 104. The one residual is a thin tail: in the last 60 s /search p99 canary=180 ms vs stable=61 ms. JUDGEMENT: the whole-test aggregates in the dashboard (canary p95 177 ms, /browse p95 150 ms) are dominated by the first 30 s of a single freshly started pod and are a warm-up artefact (cold caches / JIT / connection-pool fill), which is why they vanish once the pod is warm; a 1-pod canary has no such history to amortise, while a promote replaces all pods and that warm-up cost is paid once at rollout, not continuously. JUDGEMENT: the leftover /search p99 is ~4 requests out of 400 and is a tail, not a shift (p50 and p95 are identical to stable), so it does not justify blocking the release; promote, but watch /search p99 for the first 10 minutes after the rollout and roll back if it does not settle to stable's ~61 ms.",
+  "claims": [
+    {
+      "claim": "There were zero 5xx responses on either version across all 9819 requests of the test.",
+      "query": "const c5=canary.filter(r=>r.status>=500).length, s5=stable.filter(r=>r.status>=500).length;\nprint('5xx canary='+c5+' stable='+s5+' total='+rows.length);",
+      "expect": "5xx canary=0 stable=0 total=9819"
+    },
+    {
+      "claim": "Every logged response on both versions was HTTP 200.",
+      "query": "const tally=o=>{const m={};for(const r of o){m[r.status]=(m[r.status]||0)+1;}return JSON.stringify(m);};\nprint('statuses canary '+tally(canary)+' stable '+tally(stable));",
+      "expect": "statuses canary {\"200\":2476} stable {\"200\":7343}"
+    },
+    {
+      "claim": "In the first 30 s the canary p95 was 210 ms versus stable 93 ms.",
+      "query": "const c=canary.filter(r=>r.t<30).map(r=>r.ms), s=stable.filter(r=>r.t<30).map(r=>r.ms);\nprint('FIRST30 canary p95='+pct(c,0.95)+' stable p95='+pct(s,0.95));",
+      "expect": "FIRST30 canary p95=210 stable p95=93"
+    },
+    {
+      "claim": "The canary p95 decayed monotonically over the first six 10 s windows: 226, 203, 176, 143, 124, 95 ms.",
+      "query": "let out='DECAY';\nfor(let a=0;a<60;a+=10){const c=canary.filter(r=>r.t>=a&&r.t<a+10).map(r=>r.ms); out+=' '+a+'-'+(a+10)+'s:'+pct(c,0.95);}\nprint(out);",
+      "expect": "0-10s:226 10-20s:203 20-30s:176 30-40s:143 40-50s:124 50-60s:95"
+    },
+    {
+      "claim": "In the last 60 s the canary overall p95 was 94 ms versus stable 95 ms.",
+      "query": "const c=canary.filter(r=>r.t>=60).map(r=>r.ms), s=stable.filter(r=>r.t>=60).map(r=>r.ms);\nprint('LAST60 canary p95='+pct(c,0.95)+' stable p95='+pct(s,0.95));",
+      "expect": "LAST60 canary p95=94 stable p95=95"
+    },
+    {
+      "claim": "In the last 60 s per-path p95 is at parity: /browse 27 vs 27, /search 59 vs 59, /checkout 103 vs 104 ms.",
+      "query": "let out='LAST60';\nfor(const p of ['/browse','/search','/checkout']){const c=canary.filter(r=>r.t>=60&&r.path===p).map(r=>r.ms), s=stable.filter(r=>r.t>=60&&r.path===p).map(r=>r.ms); out+=' '+p+' c'+pct(c,0.95)+'/s'+pct(s,0.95);}\nprint(out);",
+      "expect": "/browse c27/s27 /search c59/s59 /checkout c103/s104"
+    },
+    {
+      "claim": "A residual tail remains: in the last 60 s /search p99 was 180 ms on the canary versus 61 ms on stable, over 400 canary samples.",
+      "query": "const c=canary.filter(r=>r.t>=60&&r.path==='/search').map(r=>r.ms), s=stable.filter(r=>r.t>=60&&r.path==='/search').map(r=>r.ms);\nprint('LAST60 /search p99 canary='+pct(c,0.99)+' stable='+pct(s,0.99)+' n='+c.length);",
+      "expect": "LAST60 /search p99 canary=180 stable=61 n=400"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "decision": "PROMOTE",
+  "why": "Facts from the raw log: (1) neither version returned a single 5xx and the only status code in the whole run is 200. (2) Over the full 120 s the canary's aggregate p95 is 177 ms vs 94 ms for stable, which is what the dashboard flags. (3) That gap is confined to the start of the run: p95 in 0-30 s is 210 ms canary vs 93 ms stable and in 30-60 s is 130 ms canary vs 94 ms stable. (4) From t=60 s on the two versions are indistinguishable: canary n=1261 p50=36 p95=94 p99=104 vs stable n=3651 p50=34 p95=95 p99=104. (5) The same steady-state parity holds per route after 60 s: /browse p95 27 vs 27, /search 59 vs 59, /checkout 103 vs 104. (6) The last two windows confirm it is flat, not drifting: 60-90 s p95 95 canary / 95 stable and 90-120 s p95 94 canary / 94 stable. JUDGEMENT: the elevated aggregate p95 is a one-time warm-up transient of the single fresh canary pod (cold caches / JIT / connection pool fill) that decays monotonically 210 -> 130 -> 95 -> 94 ms and is over within the first minute; it is not a regression, since the steady state matches stable on every route at p50/p95/p99 with zero errors. A 120 s test is short and only ~25% of traffic hit one pod, so JUDGEMENT: promote, but watch p95 and 5xx during the ramp to 100% and keep the rollback ready, because warm-up cost will briefly recur on each newly started pod.",
+  "claims": [
+    {
+      "claim": "Neither version returned any 5xx; the only HTTP status present in the whole run is 200.",
+      "query": "const e=rs=>rs.filter(r=>r.status>=500).length;\nconst st=[...new Set(rows.map(r=>r.status))].sort((a,b)=>a-b);\nprint('ERRORS canary_5xx='+e(canary)+' stable_5xx='+e(stable)+' statuses=['+st.join(',')+']');",
+      "expect": "ERRORS canary_5xx=0 stable_5xx=0 statuses=[200]"
+    },
+    {
+      "claim": "Over the full 120 s run the canary aggregate p95 is 177 ms (n=2476) versus 94 ms for stable (n=7343).",
+      "query": "const P=(rs,f)=>pct(rs.map(r=>r.ms),f);\nprint('FULLRUN canary n='+canary.length+' p95='+P(canary,0.95)+' | stable n='+stable.length+' p95='+P(stable,0.95));",
+      "expect": "FULLRUN canary n=2476 p95=177 | stable n=7343 p95=94"
+    },
+    {
+      "claim": "The canary's latency penalty is concentrated in the first 60 s: p95 210 ms vs stable 93 ms in 0-30 s, and 130 ms vs 94 ms in 30-60 s.",
+      "query": "const P=(rs,f)=>pct(rs.map(r=>r.ms),f);\nconst W=(rs,a,b)=>rs.filter(r=>r.t>=a&&r.t<b);\nprint('EARLY 0-30 c'+P(W(canary,0,30),0.95)+'/s'+P(W(stable,0,30),0.95)+' | 30-60 c'+P(W(canary,30,60),0.95)+'/s'+P(W(stable,30,60),0.95));",
+      "expect": "EARLY 0-30 c210/s93 | 30-60 c130/s94"
+    },
+    {
+      "claim": "After t=60 s the canary matches stable on every percentile: canary n=1261 p50=36 p95=94 p99=104 versus stable n=3651 p50=34 p95=95 p99=104.",
+      "query": "const P=(rs,f)=>pct(rs.map(r=>r.ms),f);\nconst c=canary.filter(r=>r.t>=60), s=stable.filter(r=>r.t>=60);\nprint('AFTER60 canary n='+c.length+' p50='+P(c,0.5)+' p95='+P(c,0.95)+' p99='+P(c,0.99)+' | stable n='+s.length+' p50='+P(s,0.5)+' p95='+P(s,0.95)+' p99='+P(s,0.99));",
+      "expect": "AFTER60 canary n=1261 p50=36 p95=94 p99=104 | stable n=3651 p50=34 p95=95 p99=104"
+    },
+    {
+      "claim": "Per-route steady state after 60 s is at parity: /browse p95 27 ms canary vs 27 ms stable, /search 59 vs 59, /checkout 103 vs 104.",
+      "query": "const P=(rs,f)=>pct(rs.map(r=>r.ms),f);\nconst R=(rs,p)=>rs.filter(r=>r.t>=60&&r.path===p);\nprint('AFTER60ROUTES /browse c'+P(R(canary,'/browse'),0.95)+'/s'+P(R(stable,'/browse'),0.95)+' /search c'+P(R(canary,'/search'),0.95)+'/s'+P(R(stable,'/search'),0.95)+' /checkout c'+P(R(canary,'/checkout'),0.95)+'/s'+P(R(stable,'/checkout'),0.95));",
+      "expect": "AFTER60ROUTES /browse c27/s27 /search c59/s59 /checkout c103/s104"
+    },
+    {
+      "claim": "The last two windows are flat rather than degrading: 60-90 s p95 95 ms canary vs 95 ms stable, and 90 s to end p95 94 ms canary vs 94 ms stable.",
+      "query": "const P=(rs,f)=>pct(rs.map(r=>r.ms),f);\nconst W=(rs,a,b)=>rs.filter(r=>r.t>=a&&r.t<b);\nprint('LATEWIN 60-90 c'+P(W(canary,60,90),0.95)+'/s'+P(W(stable,60,90),0.95)+' | 90-end c'+P(canary.filter(r=>r.t>=90),0.95)+'/s'+P(stable.filter(r=>r.t>=90),0.95));",
+      "expect": "LATEWIN 60-90 c95/s95 | 90-end c94/s94"
+    }
+  ]
+}

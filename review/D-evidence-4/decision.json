@@ -1,0 +1,31 @@
+{
+  "decision": "ROLLBACK",
+  "why": "ROLLBACK. Facts from the raw request log (each is a claim below): (1) canary /search p99 is 656ms vs 193ms on stable [claim 1]; (2) 18 of 729 canary /search requests exceed 400ms while 0 of 2273 stable /search requests do [claim 2], i.e. 2.47% of canary search traffic vs 0%; (3) those slow canary requests appear in all four 30s windows, 7/2/5/4 [claim 4], so this is not a warm-up or single-blip artifact; (4) excluding that tail, canary /search tops out at 190ms while the tail cluster starts at 633ms [claim 5], so the distribution is bimodal - a distinct second mode, not gradual drift; (5) there are zero 5xx on both versions [claim 3]. Judgement: the dashboard looks clean because its /search p95 column cannot see a defect that hits only ~2.5% of requests; a tightly clustered ~633-656ms mode that is completely absent from 3 stable pods over 120s reads like a new code path in 1.1 (cold cache miss, retry, or a synchronous call) rather than noise, and at 100% traffic it would hit roughly 4x more users than it does now. Because there are no errors and /checkout is unaffected, this is not a customer-facing emergency - but promoting an unexplained 3.4x tail regression on a revenue path is worse than delaying the release. Roll back, profile the slow /search path in 1.1, then re-canary.",
+  "claims": [
+    {
+      "claim": "Canary /search p99 latency is 656ms versus 193ms for stable /search.",
+      "query": "const c=canary.filter(r=>r.path==='/search').map(r=>r.ms); const s=stable.filter(r=>r.path==='/search').map(r=>r.ms); print('canary_search_p99='+pct(c,99)+' stable_search_p99='+pct(s,99));",
+      "expect": "canary_search_p99=656 stable_search_p99=193"
+    },
+    {
+      "claim": "18 of 729 canary /search requests took over 400ms, while 0 of 2273 stable /search requests did.",
+      "query": "const c=canary.filter(r=>r.path==='/search'); const s=stable.filter(r=>r.path==='/search'); print('canary_search_over400='+c.filter(r=>r.ms>400).length+' of '+c.length+' stable_search_over400='+s.filter(r=>r.ms>400).length+' of '+s.length);",
+      "expect": "canary_search_over400=18 of 729 stable_search_over400=0 of 2273"
+    },
+    {
+      "claim": "Neither version returned any 5xx response during the test.",
+      "query": "print('canary_5xx='+canary.filter(r=>r.status>=500).length+' stable_5xx='+stable.filter(r=>r.status>=500).length);",
+      "expect": "canary_5xx=0 stable_5xx=0"
+    },
+    {
+      "claim": "The slow canary /search requests occur in every 30s window of the test: 7, 2, 5, 4.",
+      "query": "const w=[0,1,2,3].map(i=>canary.filter(r=>r.path==='/search'&&r.ms>400&&r.t>=i*30&&r.t<(i+1)*30).length); print('window_slow_counts='+w.join(','));",
+      "expect": "window_slow_counts=7,2,5,4"
+    },
+    {
+      "claim": "Canary /search is bimodal: excluding the slow tail its maximum is 190ms, and the tail cluster starts at 633ms.",
+      "query": "const c=canary.filter(r=>r.path==='/search'); const slow=c.filter(r=>r.ms>400).map(r=>r.ms); const fast=c.filter(r=>r.ms<=400).map(r=>r.ms); print('canary_search_excl_tail_max='+Math.max(...fast)+' tail_min='+Math.min(...slow));",
+      "expect": "canary_search_excl_tail_max=190 tail_min=633"
+    }
+  ]
+}

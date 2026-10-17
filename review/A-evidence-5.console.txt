@@ -1,0 +1,29 @@
+agent: canary judge   canary = A   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='function p95(rs){return rs.length?pct(rs.map(r=>r.ms),95):Na')
+   thought: The dashboard hints at a warm-up pattern: canary p95 starts at 210ms and converges to stable by 60-90s. Before deciding, I need to verify in the raw log: (a) ze
+   result : counts stable=7343 canary=2476
+            5xx stable=0 5xx canary=0
+            status codes {"200":9819}
+            win 0-30s canary_p95=317 stable_p95=331 canary_n=612 canary_5xx=0
+            win 30-60s canary_p95=361 stable_p95=327 canary_n=603 canary_5xx=0
+            win 60-90s canary_p95=325 stable_p95=340 canary_n=642 canary_5xx=0
+            win 90-120s canary_p95=180 stable_p95=322 canary_n=619 canary_5xx=0
+            LAST60 canary p50/p95/p99=325/325/325
+            LAST60 stab …
+── step 2 ── run_query(code='function q(rs,p){return rs.length?pct(rs.map(r=>r.ms),p):NaN')
+   thought: My step-1 numbers didn't match the dashboard (e.g. I got canary p95=317 for 0-30s vs dashboard 210, and p50=p95=p99=325 identically) — that strongly suggests pc
+   result : CONVENTION frac pct canary 62 177 218
+            CONVENTION int  pct canary 361 361 361
+            MANUAL canary p50/p95/p99 62 177 218
+            MANUAL stable p50/p95/p99 34 94 104
+            max canary 361 max stable 340
+            WIN 0-30 canary_p95=210 stable_p95=93 canary_p50=146 stable_p50=34 n=612 5xx=0
+            WIN 30-60 canary_p95=130 stable_p95=94 canary_p50=73 stable_p50=34 n=603 5xx=0
+            WIN 60-90 canary_p95=95 stable_p95=95 canary_p50=38 stable_p50 …
+── step 3 ── write_file(path='review/A-evidence-5/decision.json')
+   thought: I have enough evidence. Key findings reproduced with the right pct convention (fraction, not 0-100): zero 5xx / zero non-200 across 9819 requests; canary aggreg
+   result : wrote review/A-evidence-5/decision.json
+── step 4 ── done(summary='Decision: PROMOTE, written to review/A-evidence-5/decision.j')
+   thought: The decision file is already written. run_query only sees the request log, so it cannot re-read the file to re-verify claim strings; my claim queries were built
+
+🟡 handing back to a human after 4 steps — decision: PROMOTE

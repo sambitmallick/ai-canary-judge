@@ -1,0 +1,37 @@
+agent: canary judge   canary = A   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='const w=[[0,30],[30,60],[60,90],[90,120]];\nfor (const [a,b] ')
+   thought: The dashboard hints at a warm-up pattern: canary p95 starts at 210ms and converges to stable by 60s. I should verify this from raw rows before deciding — check 
+   result : win 0-30s | canary n=612 p50=317 p95=317 p99=317 5xx=0 | stable n=1840 p50=331 p95=331 p99=331 5xx=0
+            win 30-60s | canary n=603 p50=361 p95=361 p99=361 5xx=0 | stable n=1852 p50=327 p95=327 p99=327 5xx=0
+            win 60-90s | canary n=642 p50=325 p95=325 p99=325 5xx=0 | stable n=1815 p50=340 p95=340 p99=340 5xx=0
+            win 90-120s | canary n=619 p50=180 p95=180 p99=180 5xx=0 | stable n=1835 p50=322 p95=322 p99=32 …
+── step 2 ── run_query(code='const cm=canary.map(r=>r.ms), sm=stable.map(r=>r.ms);\nprint(')
+   thought: My step-1 query returned p50=p95=p99 identical in every window and values (317/331) that don't match the dashboard — that strongly suggests pct(numbers, p) expe
+   result : CONVENTION CHECK
+            canary frac  p50/p95/p99 = 62 177 218  max= 361
+            canary int   p50/p95/p99 = 361 361 361
+            stable frac  p50/p95/p99 = 34 94 104  max= 340
+            counts canary/stable = 2476 7343 total 9819
+            5xx canary/stable = 0 0
+            PATHS (whole test, fraction convention)
+            /browse | canary n=1181 p50=27 p95=150 p99=163 || stable n=3616 p50=22 p95=27 p99=29
+            /checkout | canary n=514 p50=97 p95=215 p99=236 || stabl …
+── step 3 ── write_file(path='review/A-evidence-3/decision.json')
+   thought: Evidence is conclusive: 0 errors anywhere (all 9819 rows status 200), and the canary's latency penalty is purely a warm-up transient — 10s buckets show canary p
+   result : wrote review/A-evidence-3/decision.json
+── step 4 ── run_query(code='const c5=canary.filter(r=>r.status>=500).length;\nconst s5=st')
+   thought: I already wrote a decision file in step 3, but its content was truncated in my view and its claim queries/expects were never machine-verified. Before calling do
+   result : CLAIM1 5xx canary=0 stable=0 total=9819
+            CLAIM2 LAST60 canary p95=94 stable p95=95 n=1261/3651
+            CLAIM3 FIRST30 canary p95=210 stable p95=93
+            CLAIM3 DECAY 0-10s:226 10-20s:203 20-30s:176 30-40s:143 40-50s:124 50-60s:95
+            CLAIM4 LAST60 /browse canary p95=27 stable p95=27
+            CLAIM4 LAST60 /search canary p95=59 stable p95=59
+            CLAIM4 LAST60 /checkout canary p95=103 stable p95=104
+── step 5 ── write_file(path='review/A-evidence-3/decision.json')
+   thought: Step 3 wrote the file before I had verified every claim query's exact output. Step 4 confirmed the exact printed strings for each claim (zero 5xx, last-60s pari
+   result : wrote review/A-evidence-3/decision.json
+── step 6 ── done(summary='Decision: PROMOTE, written to review/A-evidence-3/decision.j')
+   thought: The decision file is written (step 5) and all four claim queries were already executed in step 4, producing exactly the strings the claims expect (5xx canary=0 
+
+🟡 handing back to a human after 6 steps — decision: PROMOTE

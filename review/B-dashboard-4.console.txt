@@ -1,0 +1,8 @@
+agent: canary judge   canary = B   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/B-dashboard-4/decision.json')
+   thought: Latency is a non-issue: canary p50/p95/p99 match stable on every route (e.g. /checkout 83/104/106 vs 82/104/106). The real signal is errors: canary has 10 5xx, 
+   result : wrote review/B-dashboard-4/decision.json
+── step 2 ── done(summary='Wrote review/B-dashboard-4/decision.json with decision=ROLLB')
+   thought: The decision file was already written in step 1 with ROLLBACK. The evidence supports it: canary 1.1 produced 10 5xx (all on /checkout, 2.07% of its 483 checkout
+
+🟡 handing back to a human after 2 steps — decision: ROLLBACK

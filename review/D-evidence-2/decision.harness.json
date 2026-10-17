@@ -1,0 +1,40 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "18 of 729 canary /search requests took more than 200 ms (2.47%), while 0 of 2273 stable /search requests did.",
+   "verified": true,
+   "output": "SLOW c=18/729 s=0/2273 SLOW_PCT=2.47%"
+  },
+  {
+   "claim": "The slow canary /search requests ranged 633-656 ms, while the slowest stable /search request in the whole test was 193 ms.",
+   "verified": true,
+   "output": "CANARY_SLOW_RANGE=633-656 STABLE_SEARCH_MAX=193"
+  },
+  {
+   "claim": "Canary /search p99 is at least 8x stable /search p99, while canary and stable /search p50 differ by no more than 5 ms.",
+   "verified": true,
+   "output": "SEARCH p99 c=652 s=61 | p50 c=47 s=47\nP99_RATIO_GE_8=true P50_DIFF_LE_5=true"
+  },
+  {
+   "claim": "Every slow canary /search request returned HTTP 200, and both canary and stable had zero 5xx responses.",
+   "verified": true,
+   "output": "SLOW_STATUS_COUNTS={\"200\":18}\nCANARY_5XX=0 STABLE_5XX=0 SLOW_ALL_200=true"
+  },
+  {
+   "claim": "The slow canary /search requests appear in all four 30 s windows of the test, split 7, 2, 5 and 4.",
+   "verified": true,
+   "output": "first_t=3.2 last_t=113.3\nWINDOWS=7,2,5,4 ALL4=true"
+  },
+  {
+   "claim": "Canary p99 on /browse and /checkout is not worse than stable p99 on those paths (within 5 ms), so the regression is isolated to /search.",
+   "verified": true,
+   "output": "/browse c_p99=30 s_p99=28 | /checkout c_p99=105 s_p99=106\nOTHER_PATHS_NOT_WORSE=true"
+  },
+  {
+   "claim": "The canary pod served 2384 requests during the test against 7404 on the three stable pods.",
+   "verified": true,
+   "output": "CANARY_N=2384 STABLE_N=7404 TOTAL=9788\nCANARY_SHARE=24.4%"
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "There were zero 5xx and zero non-200 responses across all 9819 requests (7343 stable, 2476 canary).",
+   "verified": true,
+   "output": "C1 5xx stable=0 canary=0 non200=0 total=9819"
+  },
+  {
+   "claim": "Over the whole 120s test the canary p95 is 177ms versus stable 94ms.",
+   "verified": true,
+   "output": "C2 overall canary p95=177 stable p95=94"
+  },
+  {
+   "claim": "The latency gap is concentrated in the first 30s: canary p95=210ms vs stable p95=93ms.",
+   "verified": true,
+   "output": "C3 W0-30 canary p95=210 stable p95=93"
+  },
+  {
+   "claim": "From t>=60s the canary matches stable: canary p95=94ms vs stable 95ms, canary p99=104ms vs stable 104ms.",
+   "verified": true,
+   "output": "C4 steady canary p95=94 stable p95=95 canary p99=104 stable p99=104"
+  },
+  {
+   "claim": "Steady-state (t>=60s) /checkout p95 is 103ms on the canary versus 104ms on stable.",
+   "verified": true,
+   "output": "C5 checkout60 canary p95=103 stable p95=104"
+  },
+  {
+   "claim": "Steady-state (t>=60s) /browse p95 is 27ms on both versions and /search p95 is 59ms on both versions.",
+   "verified": true,
+   "output": "C6 browse60 canary p95=27 stable p95=27 search60 canary p95=59 stable p95=59"
+  }
+ ]
+}

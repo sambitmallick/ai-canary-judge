@@ -1,0 +1,11 @@
+$ python judge/score.py
+canary   truth      no-AI code  dashboard (5 runs)                       evidence (5 runs)                       
+A (warmu PROMOTE    ROLLBACK WRONG PROMOTE PROMOTE PROMOTE PROMOTE PROMOTE 5/5 PROMOTE PROMOTE PROMOTE PROMOTE PROMOTE 5/5
+B (error ROLLBACK   ROLLBACK ok ROLLBK  ROLLBK  ROLLBK  ROLLBK  ROLLBK  5/5 ROLLBK  ROLLBK  ROLLBK  ROLLBK  ROLLBK  5/5
+C (none) PROMOTE    PROMOTE ok  PROMOTE PROMOTE PROMOTE PROMOTE PROMOTE 5/5 PROMOTE PROMOTE PROMOTE PROMOTE PROMOTE 5/5
+D (slow) ROLLBACK   ROLLBACK ok PROMOTE PROMOTE PROMOTE PROMOTE ROLLBK  1/5 ROLLBK  ROLLBK  ROLLBK  ROLLBK  ROLLBK  5/5
+
+code       correct 3 of 4
+dashboard  correct 16 of 20
+evidence   correct 20 of 20
+[exit 0, 0s]

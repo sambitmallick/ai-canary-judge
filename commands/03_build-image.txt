@@ -1,0 +1,22 @@
+$ podman build -t localhost/shop:1.0 app/
+STEP 1/5: FROM docker.io/library/node:24-alpine
+Trying to pull docker.io/library/node:24-alpine...
+Getting image source signatures
+Copying blob sha256:c3fb422c2ba38fa35c8cca2a7872ca59ca302e4394e8edc96434c39b282b8608
+Copying blob sha256:862c5dc468d45e2429239f43ada1e4e4bba2fa8e215f39c3f2dcc558c65007b1
+Copying blob sha256:2af284e0bab394dd343f480c97a8438422f4a8f3aaae795457c6de5dfa89b3dd
+Copying blob sha256:e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5
+Copying config sha256:b842533ff06352670de854fcbd6939f01dd0f1a0fe4fd40d8e60a943626ee58b
+Writing manifest to image destination
+STEP 2/5: WORKDIR /app
+--> db5d3b5cba4a
+STEP 3/5: COPY server.js loadgen.js ./
+--> dfdbd49855bb
+STEP 4/5: EXPOSE 8080
+--> 5ddfaecf8bed
+STEP 5/5: CMD ["node", "server.js"]
+COMMIT localhost/shop:1.0
+--> 1d0c7730ace9
+Successfully tagged localhost/shop:1.0
+1d0c7730ace919c64116a06c9792b38d757eb688c50f819f1d0a831a84f323f8
+[exit 0, 9s]

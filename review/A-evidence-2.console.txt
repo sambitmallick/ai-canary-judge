@@ -1,0 +1,54 @@
+agent: canary judge   canary = A   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code="function p95(rs){return pct(rs.map(r=>r.ms),95);} \nprint('TO")
+   thought: The dashboard hints at a warmup effect: canary p95 starts at 210ms and converges to stable's ~94ms by 60-90s, with zero 5xx anywhere. Before writing a decision 
+   result : TOTAL rows 9819 stable 7343 canary 2476
+            5xx stable 0 5xx canary 0
+            non-200 stable 0 non-200 canary 0
+            maxStatus stable 200 canary 200
+            win 0-15s stable n=908 p50=327 p95=327 | canary n=317 p50=317 p95=317 p99=317
+            win 15-30s stable n=932 p50=331 p95=331 | canary n=295 p50=198 p95=198 p99=198
+            win 30-45s stable n=911 p50=327 p95=327 | canary n=317 p50=361 p95=361 p99=361
+            win 45-60s stable n=941 p50=179  …
+── step 2 ── run_query(code="const ms=r=>r.ms;\nconst q=(rs,p)=>pct(rs.map(ms),p);\nprint('")
+   thought: My first query's percentile numbers looked broken: p50, p95 and p99 came out identical inside every window, which is what happens if pct() expects a fraction (0
+   result : CONV stable frac0.5=34 int50=340 frac0.95=94 int95=340 max=340
+            CONV canary frac0.5=62 int50=361 frac0.95=177 int95=361 max=361
+            WIN 0-30 canary n=612 p50=146 p95=210 | stable n=1840 p50=34 p95=93
+            WIN 30-60 canary n=603 p50=73 p95=130 | stable n=1852 p50=34 p95=94
+            WIN 60-90 canary n=642 p50=38 p95=95 | stable n=1815 p50=34 p95=95
+            WIN 90-120 canary n=619 p50=34 p95=94 | stable n=1835 p50=34 p95=94
+            AF …
+── step 3 ── write_file(path='review/A-evidence-2/decision.json')
+   thought: Two probe rounds already answered the key questions: zero errors on both versions, and the canary's latency gap is entirely a warm-up artifact (first-30s p95 21
+   result : wrote review/A-evidence-2/decision.json
+── step 4 ── run_query(code='const ms=r=>r.ms;\nconst q=(rs,p)=>pct(rs.map(ms),p);\nconst w')
+   thought: I already wrote a decision file, but the content I submitted was truncated in my log, so I cannot be sure the claim queries/expects in it match exactly what the
+   result : ERRORS stable5xx=0 canary5xx=0 stableNon200=0 canaryNon200=0
+            WINDOWS canary p95 0-30s=317 90-120s=180
+            AFTER60 canary p50=325 p95=325 p99=325 stable p50=340 p95=340 p99=340
+            AFTER60 checkout canary p95=325 stable p95=340 nCanary=268
+            SLOW150 canary first30=272 canary after60=6
+            COUNTS total=9819 stable=7343 canary=2476
+── step 5 ── run_query(code="(()=>{print('ERRORS stable5xx='+stable.filter(r=>r.status>=5")
+   thought: I already wrote a decision file in step 3, but my step-4 verification accidentally used integer percentile arguments (pct(...,95)), which step 2 proved returns 
+   result : ERRORS stable5xx=0 canary5xx=0 stableNon200=0 canaryNon200=0
+            FIRST30 canary p95=210 stable p95=93
+            AFTER60 canary n=1261 p50=36 p95=94 p99=104 stable n=3651 p50=34 p95=95 p99=104
+            SLOW150 canaryFirst30=272 canaryAfter60=6 stableAfter60=16
+            AFTER60 checkout canary n=268 p50=79 p95=103 stable n=735 p50=83 p95=104
+── step 6 ── write_file(path='review/A-evidence-2/decision.json')
+   thought: I already wrote a decision file at step 3, but I cannot see its exact contents and I have since verified a clean, exact set of printable evidence lines (step 5 
+   result : wrote review/A-evidence-2/decision.json
+── step 7 ── write_file(path='review/A-evidence-2/decision.json')
+   thought: The file is already written, but I cannot read it back, and I want every claim query to be one I have literally executed and whose output I verified character-f
+   result : wrote review/A-evidence-2/decision.json
+── step 8 ── write_file(path='review/A-evidence-2/decision.json')
+   thought: I've already validated every number I want to cite (errors, overall p95, first-30s p95, after-60s parity, slow-request counts) in steps 2 and 5. The remaining r
+   result : wrote review/A-evidence-2/decision.json
+── step 9 ── write_file(path='review/A-evidence-2/decision.json')
+   thought: The decision file exists but I keep rewriting it; the real risk now is a claim query whose output doesn't literally contain its "expect" string. I'll write one 
+   result : wrote review/A-evidence-2/decision.json
+── step 10 ── done(summary='Decision: PROMOTE. Evidence from the raw log: zero 5xx and z')
+   thought: Canonical decision file written with five claims whose query outputs I observed verbatim in earlier runs; ready to finish.
+
+🟡 handing back to a human after 10 steps — decision: PROMOTE

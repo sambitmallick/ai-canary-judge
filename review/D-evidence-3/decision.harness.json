@@ -1,0 +1,40 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "Canary /search p99 is more than 5x the stable /search p99 (651 ms vs 61 ms).",
+   "verified": true,
+   "output": "canarySearchP99=652 stableSearchP99=61 tailRatioOver5x=true"
+  },
+  {
+   "claim": "18 canary /search requests exceeded 500 ms, while no stable request on any path exceeded 400 ms (stable max 343 ms).",
+   "verified": true,
+   "output": "canarySearchOver500=18 stableOver400AllPaths=0 stableMaxMs=343"
+  },
+  {
+   "claim": "There were zero 5xx responses on either version and all 18 slow canary /search responses returned HTTP 200.",
+   "verified": true,
+   "output": "canary5xx=0 stable5xx=0 slowCount=18 slowNon200=0"
+  },
+  {
+   "claim": "The 18 slow canary /search responses occur in 11 of the 12 ten-second buckets of the test, from t=3.18s to t=113.3s.",
+   "verified": true,
+   "output": "slowCount=18 distinctBuckets=11 of12 firstT=3.18 lastT=113.3"
+  },
+  {
+   "claim": "Canary /search latency is bimodal: fast cluster max 190 ms, slow cluster min 633 ms, and no request between 200 ms and 600 ms.",
+   "verified": true,
+   "output": "fastN=711 fastMax=190 slowN=18 slowMin=633 between200and600=0"
+  },
+  {
+   "claim": "/browse and /checkout show no canary regression: canary max latency is <= stable max latency on both paths.",
+   "verified": true,
+   "output": "browseCanaryMax=87 browseStableMax=87 checkoutCanaryMax=301 checkoutStableMax=343 canaryNotWorse=true"
+  },
+  {
+   "claim": "The slow cluster is 2.47% of canary /search requests and 0.76% of all canary requests.",
+   "verified": true,
+   "output": "slowShareOfCanarySearch=2.47% slowShareOfAllCanary=0.76%"
+  }
+ ]
+}

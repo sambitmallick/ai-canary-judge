@@ -1,0 +1,30 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "There were zero 5xx responses on both stable (1.0) and canary (1.1) across all 9785 requests.",
+   "verified": true,
+   "output": "stable_5xx=0 canary_5xx=0 total=9785"
+  },
+  {
+   "claim": "Aggregate latency is equivalent: stable p95=94 p99=104 ms vs canary p95=93 p99=105 ms.",
+   "verified": true,
+   "output": "agg stable p95=94 p99=104 | canary p95=93 p99=105"
+  },
+  {
+   "claim": "Per-path p95 matches endpoint for endpoint: /browse 27 vs 27 ms, /search 59 vs 59 ms, /checkout 103 vs 104 ms.",
+   "verified": true,
+   "output": "p95 /browse s=27 c=27 /search s=59 c=59 /checkout s=103 c=104"
+  },
+  {
+   "claim": "There is no degradation over the run: in the final 90-120s window stable p95=92 ms and canary p95=96 ms.",
+   "verified": true,
+   "output": "0-30s stable p95=94 canary p95=92 | 30-60s stable p95=94 canary p95=92 | 60-90s stable p95=95 canary p95=93 | 90-120s stable p95=92 canary p95=96 |"
+  },
+  {
+   "claim": "The only visible difference is /browse p99 (stable 28 ms vs canary 77 ms), while the /browse max is identical at 87 ms on both versions.",
+   "verified": true,
+   "output": "/browse p99 stable=28 canary=77 max stable=87 canary=87"
+  }
+ ]
+}

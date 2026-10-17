@@ -1,0 +1,74 @@
+agent: canary judge   canary = A   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='function p95(rs){return pct(rs.map(r=>r.ms),95);}\nfunction p')
+   thought: The dashboard hints the canary's elevated p95 is concentrated in the first 30-60s (warm-up) and converges to stable afterwards, with zero 5xx. Before writing a 
+   result : TOTALS stable=7343 canary=2476
+            5xx stable=0 canary=0
+            non200 stable=0 canary=0
+            win 0-30s  canary n=612 p95=317 p99=317 | stable n=1840 p95=331 p99=331
+            win 30-60s  canary n=603 p95=361 p99=361 | stable n=1852 p95=327 p99=327
+            win 60-90s  canary n=642 p95=325 p99=325 | stable n=1815 p95=340 p99=340
+            win 90-120s  canary n=619 p95=180 p99=180 | stable n=1835 p95=322 p99=322
+            after60s /browse  canary n=593 …
+── step 2 ── run_query(code='// sanity: does pct take a fraction or a whole number?\nconst')
+   thought: My first query's percentiles came back with p50==p95==p99==max for every group, which means pct() almost certainly expects a fraction (0.95) not 95, and large p
+   result : SANITY pct(t,0.5)=6 pct(t,0.95)=10 pct(t,50)=10 pct(t,95)=10
+            STABLE all n=7343 p50=34 p95=94 p99=104 5xx=0 non2xx=0
+            CANARY all n=2476 p50=62 p95=177 p99=218 5xx=0 non2xx=0
+            STABLE /browse n=3616 p50=22 p95=27 p99=29 5xx=0 non2xx=0
+            CANARY /browse n=1181 p50=27 p95=150 p99=163 5xx=0 non2xx=0
+            STABLE /search n=2232 p50=47 p95=59 p99=61 5xx=0 non2xx=0
+            CANARY /search n=781 p50=56 p95=177 p99=195 5xx=0 no …
+── step 3 ── write_file(path='review/A-evidence-4/decision.json')
+   thought: Evidence is now sufficient. Two independent runs over the raw log confirm: (a) every one of the 9819 requests returned 200 — zero 5xx on both versions; (b) the 
+   result : wrote review/A-evidence-4/decision.json
+── step 4 ── run_query(code='function P(rs,p){return pct(rs.map(r=>r.ms),p);}\nfunction e5')
+   thought: The decision file is written (PROMOTE). Before finishing I want one last verification run that re-derives the exact facts my claims rest on — zero 5xx on both v
+   result : ERRORS stable 5xx=0 canary 5xx=0
+            STATUSES [200]
+            WIN 0-30s canary p95=317 stable p95=331
+            WIN 30-60s canary p95=361 stable p95=327
+            WIN 60-90s canary p95=325 stable p95=340
+            WIN 90-120s canary p95=180 stable p95=322
+            T>=60 canary n=1261 p50=325 p95=325 p99=325 5xx=0
+            T>=60 stable n=3651 p50=340 p95=340 p99=340 5xx=0
+            T>=60 /browse canary p50=85 p95=85 | stable p50=87 p95=87
+            T>=60 /search canary p50=195 p …
+── step 5 ── run_query(code='// NOTE: pct() takes a FRACTION (verified: pct([1..10],95) c')
+   thought: Critical correction from step 2: pct() takes a FRACTION (pct(t,95) just clamps to max), so my step-1 and step-4 numbers were garbage and the step-2 run is the t
+   result : ERRORS canary_5xx=0 stable_5xx=0 statuses=[200]
+            FULLRUN canary n=2476 p50=62 p95=177 p99=218
+            FULLRUN stable n=7343 p50=34 p95=94 p99=104
+            WIN 0-30s canary p95=210 stable p95=93 canary_5xx=0 stable_5xx=0
+            WIN 30-60s canary p95=130 stable p95=94 canary_5xx=0 stable_5xx=0
+            WIN 60-90s canary p95=95 stable p95=95 canary_5xx=0 stable_5xx=0
+            WIN 90-120s canary p95=94 stable p95=94 canary_5xx=0 stable_5xx=0
+            A …
+── step 6 ── write_file(path='review/A-evidence-4/decision.json')
+   thought: I have enough evidence. The decision file from step 3 was written before I had fully nailed the pct() convention, so I'll overwrite it with claims whose exact o
+   result : wrote review/A-evidence-4/decision.json
+── step 7 ── write_file(path='review/A-evidence-4/decision.json')
+   thought: Evidence is settled: zero 5xx, canary's aggregate p95 inflation comes entirely from the first 60 s (210→130→95→94 ms) and from t≥60 s the canary is indistinguis
+   result : wrote review/A-evidence-4/decision.json
+── step 8 ── run_query(code='const P=(rs,f)=>pct(rs.map(r=>r.ms),f);\nconst W=(rs,a,b)=>rs')
+   thought: I've already written a PROMOTE decision, but I want the claim queries to be byte-exact against the harness. Safest next step: run one query that prints the exac
+   result : ERRORS canary_5xx=0 stable_5xx=0 statuses=[200]
+            FULLRUN canary p95=177 stable p95=94
+            EARLY 0-30 c210/s93 30-60 c130/s94
+            STEADY 60-90 c95/s95 90-120 c94/s94
+            AFTER60 canary n=1261 p50=36 p95=94 p99=104 | stable n=3651 p50=34 p95=95 p99=104
+            AFTER60ROUTES /browse c27/s27 /search c59/s59 /checkout c103/s104
+── step 9 ── run_query(code='// verify the exact claim snippets, each self-contained, wra')
+   thought: Before the final write I want to verify the EXACT self-contained snippets I will embed as claim queries (each defines its own helpers, wrapped in blocks so they
+   result : ERRORS canary_5xx=0 stable_5xx=0 statuses=[200]
+            FULLRUN canary n=2476 p95=177 | stable n=7343 p95=94
+            EARLY 0-30 c210/s93 | 30-60 c130/s94
+            AFTER60 canary n=1261 p50=36 p95=94 p99=104 | stable n=3651 p50=34 p95=95 p99=104
+            AFTER60ROUTES /browse c27/s27 /search c59/s59 /checkout c103/s104
+            LATEWIN 60-90 c95/s95 | 90-end c94/s94
+── step 10 ── write_file(path='review/A-evidence-4/decision.json')
+   thought: All five evidence snippets were verified verbatim in step 9's output. Now write the final decision.json with PROMOTE, a "why" whose every factual statement maps
+   result : wrote review/A-evidence-4/decision.json
+── step 11 ── done(summary='Decision: PROMOTE, written to review/A-evidence-4/decision.j')
+   thought: The decision file was written at step 10 using claim queries whose exact output snippets I had already verified in step 9 (ERRORS canary_5xx=0 stable_5xx=0 stat
+
+🟡 handing back to a human after 11 steps — decision: PROMOTE

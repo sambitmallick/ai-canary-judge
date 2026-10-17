@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "D:\DevOpsAutopilot\video-27-canary\ai-canary-judge\agent\judge.py", line 156, in <module>
+    sys.exit(run(canary, mode, steps))
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\DevOpsAutopilot\video-27-canary\ai-canary-judge\agent\judge.py", line 106, in run
+    system = SYSTEM.format(tools="\n".join(TOOL_DOCS[n].format(report=REPORT) for n in names))
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\DevOpsAutopilot\video-27-canary\ai-canary-judge\agent\judge.py", line 106, in <genexpr>
+    system = SYSTEM.format(tools="\n".join(TOOL_DOCS[n].format(report=REPORT) for n in names))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 't, path, version, status, ms'

@@ -1,0 +1,19 @@
+agent: canary judge   canary = B   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='const c5=canary.filter(r=>r.status>=500), s5=stable.filter(r')
+   thought: Dashboard shows canary-only 5xx concentrated on /checkout (10 errors, 2.07%) with latency parity. Before deciding, I want to see the raw log: where the canary 5
+   result : canary 5xx total 10 stable 5xx total 0
+            canary 5xx times 13,45,50,59,71,78,79,94,99,115
+            canary 5xx paths {"/checkout":10}
+            canary 5xx statuses {"500":10}
+            /browse canary n 1236 5xx 0 p95 87 | stable n 3695 5xx 0 p95 85
+            /search canary n 736 5xx 0 p95 190 | stable n 2209 5xx 0 p95 194
+            /checkout canary n 483 5xx 10 p95 323 | stable n 1455 5xx 0 p95 344
+            win 0 - 20 canary n 407 5xx 1
+            win 20 - 40 canary n  …
+── step 2 ── write_file(path='review/B-evidence-4/decision.json')
+   thought: The log already shows the decisive pattern: 10 HTTP 500s, all on /checkout, all from the canary, spread across 5 of 6 time windows (t=13s..115s), while 3 stable
+   result : wrote review/B-evidence-4/decision.json
+── step 3 ── done(summary='Decision: ROLLBACK, written to review/B-evidence-4/decision.')
+   thought: Evidence is gathered and the decision file is written. The canary's 10 5xx are all HTTP 500 on /checkout (2.07% of its checkout traffic) versus 0 across 7359 st
+
+🟡 handing back to a human after 3 steps — decision: ROLLBACK

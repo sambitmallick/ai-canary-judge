@@ -1,0 +1,26 @@
+agent: canary judge   canary = B   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code='function agg(rs){return {n:rs.length, e5:rs.filter(r=>r.stat')
+   thought: Dashboard suggests canary-only 5xx concentrated on /checkout with flat latency. Before writing a decision I should verify in the raw log: (a) 5xx counts per ver
+   result : TOTALS stable {"n":7359,"e5":0} canary {"n":2455,"e5":10}
+            PATH /browse stable n=3695 5xx=0 | canary n=1236 5xx=0 | p95 stable=85 canary=87
+            PATH /search stable n=2209 5xx=0 | canary n=736 5xx=0 | p95 stable=194 canary=190
+            PATH /checkout stable n=1455 5xx=0 | canary n=483 5xx=10 | p95 stable=344 canary=323
+            --- canary 5xx rows ---
+            t=13.3 /checkout 500 93ms
+            t=45.0 /checkout 500 82ms
+            t=50.0 /checkout 5 …
+── step 2 ── run_query(code='const c5=canary.filter(r=>r.status>=500), s5=stable.filter(r')
+   thought: Evidence already shows canary-only 5xx on /checkout spread across the whole run, so ROLLBACK is the call. Before writing the file I want the exact output string
+   result : CANARY_5XX=10 STABLE_5XX=0
+            CANARY_5XX_PATHS=["/checkout"]
+            CHECKOUT canary 5xx=10 of 483 (2.07%) stable 5xx=0 of 1455
+            W0-30=1 W30-60=3 W60-90=3 W90-120=3 SUM=10
+            P95 canary=323 stable=344 LATENCY_CANARY_NOT_WORSE=true
+            P99 canary=323 stable=344
+── step 3 ── write_file(path='review/B-evidence-1/decision.json')
+   thought: Evidence is conclusive: 10 canary 5xx vs 0 stable, all on /checkout (2.07% of canary checkout traffic), spread across all four 30s windows (1,3,3,3) so not a st
+   result : wrote review/B-evidence-1/decision.json
+── step 4 ── done(summary='Decision: ROLLBACK (written to review/B-evidence-1/decision.')
+   thought: Evidence gathering is complete and the decision file is written. The queries backing my claims were already executed in steps 1-2 and their outputs matched the 
+
+🟡 handing back to a human after 4 steps — decision: ROLLBACK

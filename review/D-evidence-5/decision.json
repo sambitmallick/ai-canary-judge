@@ -1,0 +1,26 @@
+{
+  "decision": "ROLLBACK",
+  "why": "The aggregate dashboard looks clean (no errors, matching p95), but the raw per-path log shows a new latency mode in 1.1 that the aggregate p95 hides. Facts: (1) on /search, 18 of 729 canary requests (2.47%) took >=600 ms, while 0 of 2273 stable /search requests exceeded 200 ms; (2) the slowest canary /search request was 656 ms versus 193 ms for stable; (3) neither version returned any 5xx and neither returned any non-200 response, and all of the slow canary /search requests returned HTTP 200, so this is pure latency and not errors; (4) the slow canary /search requests appear in all four 30 s windows (7, 2, 5, 4), so the behaviour is sustained across the whole test rather than a single burst or warm-up blip. Judgement: a worst case roughly 3.4x worse than stable (656 ms vs 193 ms) on a user-facing search path, a failure mode entirely absent from stable, hitting about 2.5% of search requests and persisting for the full 120 s, is a real regression; the canary only carries about 25% of traffic today, so promoting to 100% would expose roughly four times as many users to it. Zero 5xx is not sufficient evidence of health, so ROLLBACK and investigate /search - the tight ~640-656 ms cluster looks like a timeout-and-retry or cold-cache path, which is a hypothesis, not measured.",
+  "claims": [
+    {
+      "claim": "On /search, 18 of 729 canary (1.1) requests (2.47%) took >=600 ms, while 0 of 2273 stable (1.0) /search requests exceeded 200 ms.",
+      "query": "const cs=canary.filter(r=>r.path==='/search'), ss=stable.filter(r=>r.path==='/search'); const slow=cs.filter(r=>r.ms>=600).length, sslow=ss.filter(r=>r.ms>200).length; print('SEARCH_SLOW canary='+slow+'/'+cs.length+' ('+(slow/cs.length*100).toFixed(2)+'%) stable_over200ms='+sslow+'/'+ss.length);",
+      "expect": "SEARCH_SLOW canary=18/729 (2.47%) stable_over200ms=0/2273"
+    },
+    {
+      "claim": "The slowest canary /search request was 656 ms versus 193 ms for the slowest stable /search request.",
+      "query": "const c=canary.filter(r=>r.path==='/search').map(r=>r.ms), s=stable.filter(r=>r.path==='/search').map(r=>r.ms); print('SEARCH_MAX canary='+Math.max.apply(null,c)+' stable='+Math.max.apply(null,s));",
+      "expect": "SEARCH_MAX canary=656 stable=193"
+    },
+    {
+      "claim": "Neither version returned any 5xx or any non-200 response, and every slow (>=600 ms) canary /search request returned HTTP 200.",
+      "query": "const c5=canary.filter(r=>r.status>=500).length, s5=stable.filter(r=>r.status>=500).length, cn=canary.filter(r=>r.status!==200).length, sn=stable.filter(r=>r.status!==200).length; const st=Array.from(new Set(canary.filter(r=>r.path==='/search'&&r.ms>=600).map(r=>r.status))).join(','); print('ERRORS canary5xx='+c5+' stable5xx='+s5+' canaryNon200='+cn+' stableNon200='+sn+' slowStatuses='+st);",
+      "expect": "ERRORS canary5xx=0 stable5xx=0 canaryNon200=0 stableNon200=0 slowStatuses=200"
+    },
+    {
+      "claim": "The slow canary /search requests are spread over all four 30 s windows of the test: 7, 2, 5 and 4.",
+      "query": "const w=[0,0,0,0]; canary.filter(r=>r.path==='/search'&&r.ms>=600).forEach(r=>{w[Math.min(3,Math.floor(r.t/30))]++;}); print('WINDOWS '+w.join(','));",
+      "expect": "WINDOWS 7,2,5,4"
+    }
+  ]
+}

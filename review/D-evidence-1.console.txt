@@ -1,0 +1,56 @@
+agent: canary judge   canary = D   mode = evidence   budget = 15 steps
+── step 1 ── run_query(code="const cs=canary.filter(r=>r.path==='/search'), ss=stable.fil")
+   thought: The only anomaly in the dashboard is canary /search p99 = 652ms vs stable 61ms, while aggregate p95 and 5xx look fine. I need to see how many canary /search req
+   result : canary /search n=729 p50=656 p95=656 p99=656 max=656
+            stable /search n=2273 p50=193 p95=193 p99=193 max=193
+            >100ms  canary=23  stable=8
+            >200ms  canary=18  stable=0
+            >300ms  canary=18  stable=0
+            >500ms  canary=18  stable=0
+            >1000ms  canary=0  stable=0
+            canary /search >200ms count=18 (2.47% of canary /search)
+            slow times: 3.2s/638ms/200 | 5.3s/655ms/200 | 6.7s/656ms/200 | 18.2s/633ms/200 | 19.6s/655ms/200 …
+── step 2 ── run_query(code='const srt=a=>a.slice().sort((x,y)=>x-y);\nconst q=(a,p)=>{con')
+   thought: Step 1 showed canary /search has 18 requests (~2.5%) at ~630-656ms spread across the whole 120s, while stable /search has 0 above 200ms, all with status 200. Th
+   result : canary /browse n=1190 p50=22 p95=27 p99=30 max=87 >200ms=0
+            canary /search n=729 p50=47 p95=60 p99=652 max=656 >200ms=18
+            canary /checkout n=465 p50=79 p95=102 p99=105 max=301 >200ms=1
+            stable /browse n=3602 p50=22 p95=27 p99=28 max=87 >200ms=0
+            stable /search n=2273 p50=47 p95=59 p99=61 max=193 >200ms=0
+            stable /checkout n=1529 p50=82 p95=103 p99=106 max=343 >200ms=7
+            5xx canary=0 5xx stable=0
+            non200 c …
+── step 3 ── write_file(path='review/D-evidence-1/decision.json')
+   thought: I have enough evidence. The dashboard hides a canary-only tail regression: 18/729 canary /search requests (~2.47%) sit at ~633-656ms while stable's 2273 /search
+   result : wrote review/D-evidence-1/decision.json
+── step 4 ── run_query(code="const cs=canary.filter(r=>r.path==='/search'), ss=stable.fil")
+   thought: I already wrote a decision file, but I can't read it back and I'm not 100% sure the "expect" strings I used match byte-for-byte what the harness will see. Safes
+   result : A canary>200ms=18/729 (2.47%) stable>200ms=0/2273
+            B slowRange=633-656ms canarySearchTypical_p50=47ms stableSearchMax=193ms
+            C canary5xx=0 stable5xx=0 slowStatuses=200
+            D firstSlow=3.2s lastSlow=113.3s bins=11/12
+            E otherPaths canary>200ms browse=0 checkout=1 stable checkout>200ms=7
+── step 5 ── write_file(path='review/D-evidence-1/decision.json')
+   thought: My step-3 file was written before I verified claim outputs; step 4 confirmed the underlying numbers (18/729 vs 0/2273 slow /search, 633-656ms band, stable /sear
+   result : wrote review/D-evidence-1/decision.json
+── step 6 ── write_file(path='review/D-evidence-1/decision.json')
+   thought: I already wrote a decision file, but I want the final version to contain only claims whose queries I can predict exactly (simple deterministic counts/min/max), 
+   result : wrote review/D-evidence-1/decision.json
+── step 7 ── write_file(path='review/D-evidence-1/decision.json')
+   thought: The file was written in step 6, but I can't read it back and I'm not certain its claim queries/expects exactly match verified output strings. The safest use of 
+   result : wrote review/D-evidence-1/decision.json
+── step 8 ── run_query(code="(()=>{const c=canary.filter(r=>r.path==='/search'),s=stable.")
+   thought: The decision file has been written several times; before finishing I must be sure every claim query I ship prints exactly its "expect" string. Let me run the ex
+   result : C1 canary_slow=18/729 stable_slow=0/2273
+            C2 slowMin=633 slowMax=656 canaryMedian=47 stableSearchMax=193
+            C3 all5xx=0 allNon200=0 slowStatuses=200
+            C4 firstSlow=3.2 lastSlow=113.3 count=18
+            C5 canarySearch p95=60 p99=652
+            C6 canaryBrowseSlow=0 canaryCheckoutSlow=1 stableCheckoutSlow=7
+── step 9 ── write_file(path='review/D-evidence-1/decision.json')
+   thought: All five claims were already verified against the raw log in step 8 (C1–C6 output). The remaining work is to write a final decision.json whose "why" contains on
+   result : wrote review/D-evidence-1/decision.json
+── step 10 ── done(summary='Decision: ROLLBACK, written to review/D-evidence-1/decision.')
+   thought: The decision file was written at step 9 with claims whose queries I verified at step 8 (labels C1–C6, outputs matched the expected substrings). The evidence is 
+
+🟡 handing back to a human after 10 steps — decision: ROLLBACK

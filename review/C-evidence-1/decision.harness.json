@@ -1,0 +1,30 @@
+{
+ "decision": "PROMOTE",
+ "claims": [
+  {
+   "claim": "Neither version produced any 5xx or any non-200 response: canary 0 of 2411 requests, stable 0 of 7374 requests.",
+   "verified": true,
+   "output": "5xx canary=0/2411 stable=0/7374 non200 canary=0 stable=0"
+  },
+  {
+   "claim": "Canary overall p95 latency is not more than 2 ms worse than stable overall p95 (canary 93 ms vs stable 94 ms).",
+   "verified": true,
+   "output": "overall p95 canary=93 stable=94 canaryP95NotWorseBy2ms=true"
+  },
+  {
+   "claim": "Canary /checkout p95 is within 2 ms of stable /checkout p95, so the checkout path is unchanged.",
+   "verified": true,
+   "output": "checkout p95 canary=104 stable=103 checkoutP95Within2ms=true"
+  },
+  {
+   "claim": "The canary has proportionally more slow /browse requests: 13 of 1200 canary /browse requests exceeded 40 ms versus 15 of 3672 stable /browse requests, and this is what raises canary /browse p99 to 77 ms against stable 28 ms.",
+   "verified": true,
+   "output": "browse_slow40 canary=13/1200 stable=15/3672\nbrowse p99 canary=77 stable=28"
+  },
+  {
+   "claim": "The canary /browse tail is bounded and not a developing trend: the slowest /browse request is 87 ms on both versions, and the canary's >40 ms /browse requests occur in every one of the four 30 s windows rather than clustering at the end.",
+   "verified": true,
+   "output": "browse_max canary=87 stable=87 allWindowsHaveSlow=true\nslow_by_window=5,3,2,3"
+  }
+ ]
+}

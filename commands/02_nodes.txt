@@ -1,0 +1,4 @@
+$ kubectl get nodes -o wide
+NAME                   STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                              CONTAINER-RUNTIME
+canary-control-plane   Ready    control-plane   31s   v1.36.1   10.89.0.2     <none>        Debian GNU/Linux 13 (trixie)   6.18.33.2-microsoft-standard-WSL2 (amd64)   containerd://2.3.1
+[exit 0, 2s]

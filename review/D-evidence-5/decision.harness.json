@@ -1,0 +1,25 @@
+{
+ "decision": "ROLLBACK",
+ "claims": [
+  {
+   "claim": "On /search, 18 of 729 canary (1.1) requests (2.47%) took >=600 ms, while 0 of 2273 stable (1.0) /search requests exceeded 200 ms.",
+   "verified": true,
+   "output": "SEARCH_SLOW canary=18/729 (2.47%) stable_over200ms=0/2273"
+  },
+  {
+   "claim": "The slowest canary /search request was 656 ms versus 193 ms for the slowest stable /search request.",
+   "verified": true,
+   "output": "SEARCH_MAX canary=656 stable=193"
+  },
+  {
+   "claim": "Neither version returned any 5xx or any non-200 response, and every slow (>=600 ms) canary /search request returned HTTP 200.",
+   "verified": true,
+   "output": "ERRORS canary5xx=0 stable5xx=0 canaryNon200=0 stableNon200=0 slowStatuses=200"
+  },
+  {
+   "claim": "The slow canary /search requests are spread over all four 30 s windows of the test: 7, 2, 5 and 4.",
+   "verified": true,
+   "output": "WINDOWS 7,2,5,4"
+  }
+ ]
+}

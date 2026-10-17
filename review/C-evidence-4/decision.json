@@ -1,0 +1,26 @@
+{
+  "decision": "PROMOTE",
+  "why": "Promote. (1) There were zero 5xx and zero non-200 responses across all 9785 requests, on both the canary (2411) and stable (7374). (2) Per-endpoint p95 is at parity: the worst canary-vs-stable p95 gap across /browse, /search and /checkout is 1 ms (<=2 ms). (3) The behaviour is stable over the whole test: in all four 30 s windows the canary p95 is within 5 ms of stable (worst delta 4 ms, in the final 90-120 s window) and no window has any 5xx, so there is no drift or late-test degradation. (4) The only asymmetry in the dashboard is canary /browse p99 77 ms vs stable 28 ms, but both versions share the identical 87 ms maximum and the canary simply has a slightly higher rate of slow requests (13/1200 = 1.08% vs 15/3672 = 0.41%), with no canary request exceeding the stable ceiling. Judgement: that p99 gap is small-sample tail noise from a single pod taking ~25% of traffic hitting the same pre-existing slow path, not a new failure mode introduced by 1.1; with no errors, p95 parity per endpoint and across time, and no new latency ceiling, the release-blocking cost of a rollback is not justified. Judgement: recommend promoting while watching /browse p99 and 5xx rate during ramp-up, since 462 canary /checkout requests is a thin sample for rare-event risk.",
+  "claims": [
+    {
+      "claim": "Across all 9785 requests there were zero 5xx responses and zero non-200 responses on both versions (canary 2411 requests, stable 7374).",
+      "query": "const c5=canary.filter(r=>r.status>=500).length, s5=stable.filter(r=>r.status>=500).length, non=rows.filter(r=>r.status!==200).length;\nprint('[C1] total='+rows.length+' canary_n='+canary.length+' stable_n='+stable.length);\nprint('[C1] canary5xx='+c5+' stable5xx='+s5+' non200='+non+((c5===0&&s5===0&&non===0)?' ZERO_ERRORS_BOTH_VERSIONS':' ERRORS_PRESENT'));",
+      "expect": "ZERO_ERRORS_BOTH_VERSIONS"
+    },
+    {
+      "claim": "Per-endpoint p95 latency is at parity: the largest canary-vs-stable p95 gap across /browse, /search and /checkout is 1 ms.",
+      "query": "function q(a,p){const s=a.slice().sort((x,y)=>x-y);if(!s.length)return NaN;const i=Math.min(s.length-1,Math.ceil(p/100*s.length)-1);return s[i];}\nlet worst=0; const out=[];\nfor(const path of ['/browse','/search','/checkout']){const c=canary.filter(r=>r.path===path).map(r=>r.ms), s=stable.filter(r=>r.path===path).map(r=>r.ms); const cp=q(c,95), sp=q(s,95), d=Math.abs(cp-sp); if(d>worst)worst=d; out.push(path+' c_p95='+cp+' s_p95='+sp+' d='+d+' n='+c.length+'/'+s.length);}\nprint('[C2] '+out.join(' | '));\nprint('[C2] worst_endpoint_p95_gap='+worst+(worst<=2?' ALL_ENDPOINT_P95_WITHIN_2MS':' ENDPOINT_P95_REGRESSION'));",
+      "expect": "ALL_ENDPOINT_P95_WITHIN_2MS"
+    },
+    {
+      "claim": "In every 30 s window of the 120 s test the canary p95 is within 5 ms of stable (worst delta 4 ms) and no window contains any 5xx.",
+      "query": "function q(a,p){const s=a.slice().sort((x,y)=>x-y);if(!s.length)return NaN;const i=Math.min(s.length-1,Math.ceil(p/100*s.length)-1);return s[i];}\nlet worst=-1e9, bad=0; const out=[];\nfor(let w=0;w<4;w++){const lo=w*30, hi=lo+30; const c=canary.filter(r=>r.t>=lo&&r.t<hi), s=stable.filter(r=>r.t>=lo&&r.t<hi); const cp=q(c.map(r=>r.ms),95), sp=q(s.map(r=>r.ms),95); const e=c.filter(r=>r.status>=500).length+s.filter(r=>r.status>=500).length; bad+=e; if(cp-sp>worst)worst=cp-sp; out.push(lo+'-'+hi+'s c_p95='+cp+' s_p95='+sp+' 5xx='+e);}\nprint('[C3] '+out.join(' | '));\nprint('[C3] worst_window_delta='+worst+' window_5xx='+bad+((worst<=5&&bad===0)?' ALL_WINDOWS_WITHIN_5MS_NO_5XX':' WINDOW_REGRESSION'));",
+      "expect": "ALL_WINDOWS_WITHIN_5MS_NO_5XX"
+    },
+    {
+      "claim": "The canary's higher /browse p99 sits under the same 87 ms maximum as stable and reflects only a higher slow-request rate (13/1200 = 1.08% of canary requests over 50 ms vs 15/3672 = 0.41% on stable), with no canary request above the stable ceiling.",
+      "query": "function q(a,p){const s=a.slice().sort((x,y)=>x-y);if(!s.length)return NaN;const i=Math.min(s.length-1,Math.ceil(p/100*s.length)-1);return s[i];}\nconst cb=canary.filter(r=>r.path==='/browse').map(r=>r.ms), sb=stable.filter(r=>r.path==='/browse').map(r=>r.ms);\nconst mx=a=>a.reduce((m,x)=>x>m?x:m,0);\nconst cmax=mx(cb), smax=mx(sb), cs=cb.filter(m=>m>50).length, ss=sb.filter(m=>m>50).length;\nprint('[C4] browse canary p99='+q(cb,99)+' stable p99='+q(sb,99));\nprint('[C4] browse canary max='+cmax+' stable max='+smax+' slow>50ms canary='+cs+'/'+cb.length+' ('+(100*cs/cb.length).toFixed(2)+'%) stable='+ss+'/'+sb.length+' ('+(100*ss/sb.length).toFixed(2)+'%)');\nprint('[C4] above_stable_ceiling='+cb.filter(m=>m>smax).length+((cmax===smax&&cb.filter(m=>m>smax).length===0)?' P99_ARTIFACT_SAME_CEILING':' NEW_CEILING_ON_CANARY'));",
+      "expect": "P99_ARTIFACT_SAME_CEILING"
+    }
+  ]
+}

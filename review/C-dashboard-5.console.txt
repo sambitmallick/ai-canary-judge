@@ -1,0 +1,8 @@
+agent: canary judge   canary = C   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/C-dashboard-5/decision.json')
+   thought: The dashboard shows canary at parity with stable: 0 errors on 2411 canary requests, p50/p95/p99 matching stable overall (34/93/105 vs 34/94/104), and per-endpoi
+   result : wrote review/C-dashboard-5/decision.json
+── step 2 ── done(summary='Decision: PROMOTE, recorded in review/C-dashboard-5/decision')
+   thought: The decision file was already written successfully in step 1 (harness confirmed: "wrote review/C-dashboard-5/decision.json") with decision PROMOTE. My step-2 at
+
+🟡 handing back to a human after 2 steps — decision: PROMOTE

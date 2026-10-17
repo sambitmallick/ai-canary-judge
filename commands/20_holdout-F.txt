@@ -1,0 +1,21 @@
+$ bash run-canary.sh none F
+### 1. replace the canary (VERSION=1.1, FAULT=none)
+deployment.apps "shop-canary" deleted from default namespace
+deployment.apps/shop-canary created
+Waiting for deployment "shop-canary" rollout to finish: 0 of 1 updated replicas are available...
+deployment "shop-canary" successfully rolled out
+NAME                           READY   STATUS        RESTARTS   AGE    TRACK
+shop-canary-5f64c488bf-x7sh7   1/1     Terminating   0          2m9s   canary
+shop-canary-786f6cfdbb-qpgfp   1/1     Running       0          2s     canary
+shop-stable-747f56db88-l68jl   1/1     Running       0          45m    stable
+shop-stable-747f56db88-q2nrg   1/1     Running       0          45m    stable
+shop-stable-747f56db88-qrnrq   1/1     Running       0          45m    stable
+### 2. load test: 80 requests/s for 120 s, from inside the cluster
+job.batch "loadgen" deleted from default namespace
+job.batch/loadgen created
+job.batch/loadgen condition met
+### 3. collect every request
+requests recorded: 9777
+  version 1.0: 7352 requests (75.2%)
+  version 1.1: 2425 requests (24.8%)
+[exit 0, 128s]

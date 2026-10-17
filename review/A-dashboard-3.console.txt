@@ -1,0 +1,8 @@
+agent: canary judge   canary = A   mode = dashboard   budget = 15 steps
+── step 1 ── write_file(path='review/A-dashboard-3/decision.json')
+   thought: The aggregate canary numbers look bad (p95 177 vs 94, p50 62 vs 34), but the over-time table explains it: canary p95 is 210 in 0-30s, 130 in 30-60s, then 95 and
+   result : wrote review/A-dashboard-3/decision.json
+── step 2 ── done(summary='Decision written to review/A-dashboard-3/decision.json: PROM')
+   thought: The decision file was already written in step 1 with PROMOTE and the supporting evidence. Re-checking the dashboard logic before closing: zero 5xx on every row 
+
+🟡 handing back to a human after 2 steps — decision: PROMOTE

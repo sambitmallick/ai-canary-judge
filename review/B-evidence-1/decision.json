@@ -1,0 +1,26 @@
+{
+  "decision": "ROLLBACK",
+  "why": "Canary 1.1 returned 10 HTTP 5xx responses during the 120 s test while the three stable 1.0 pods returned 0 (claim 1). Every canary 5xx was on /checkout: 10 of 483 canary checkout requests failed (2.07%) versus 0 of 1455 on stable (claim 2). The failures are spread over all four 30 s windows (1, 3, 3, 3), so they are not a single startup blip (claim 3). Canary latency is not worse than stable: its overall p95 is within 5 ms of stable's p95 (claim 4). Judgement: the only regression is an error class that stable does not produce at all, and it sits on the revenue-critical checkout path and persists for the whole test, so promoting to 100% would extrapolate to roughly 2% of all checkouts failing; the clean latency profile does not offset that. Judgement: rollback, fix the checkout 500s, and re-run the canary.",
+  "claims": [
+    {
+      "claim": "The canary (1.1) returned 10 HTTP 5xx responses while stable (1.0) returned 0 over the same test.",
+      "query": "const c=canary.filter(r=>r.status>=500).length, s=stable.filter(r=>r.status>=500).length;\nprint(\"CANARY_5XX=\"+c+\" STABLE_5XX=\"+s);",
+      "expect": "CANARY_5XX=10 STABLE_5XX=0"
+    },
+    {
+      "claim": "All canary 5xx responses were on /checkout: 10 of 483 canary checkout requests (2.07%) versus 0 of 1455 stable checkout requests.",
+      "query": "const cc=canary.filter(r=>r.path===\"/checkout\"), sc=stable.filter(r=>r.path===\"/checkout\");\nconst ce=cc.filter(r=>r.status>=500).length, se=sc.filter(r=>r.status>=500).length;\nconst paths=[...new Set(canary.filter(r=>r.status>=500).map(r=>r.path))];\nprint(\"CANARY_5XX_PATHS=\"+JSON.stringify(paths));\nprint(\"CHECKOUT_CANARY=\"+ce+\"/\"+cc.length+\" (\"+(100*ce/cc.length).toFixed(2)+\"%) CHECKOUT_STABLE=\"+se+\"/\"+sc.length);",
+      "expect": "CHECKOUT_CANARY=10/483 (2.07%) CHECKOUT_STABLE=0/1455"
+    },
+    {
+      "claim": "The canary 5xx responses occur in every 30 s window of the test (1, 3, 3, 3), not only at startup.",
+      "query": "const w=[0,0,0,0];\ncanary.filter(r=>r.status>=500).forEach(r=>{const i=Math.min(3,Math.floor(r.t/30)); w[i]++;});\nprint(\"W0-30=\"+w[0]+\" W30-60=\"+w[1]+\" W60-90=\"+w[2]+\" W90-120=\"+w[3]+\" SUM=\"+(w[0]+w[1]+w[2]+w[3]));",
+      "expect": "W0-30=1 W30-60=3 W60-90=3 W90-120=3"
+    },
+    {
+      "claim": "Canary latency is not worse than stable: the canary overall p95 is within 5 ms of the stable overall p95.",
+      "query": "function p95(rs){const a=rs.map(r=>r.ms).sort((x,y)=>x-y); return a[Math.floor(0.95*(a.length-1))];}\nconst c=p95(canary), s=p95(stable);\nprint(\"P95_CANARY=\"+c+\" P95_STABLE=\"+s);\nprint(\"CANARY_P95_WITHIN_5MS_OF_STABLE=\"+((c-s)<=5));",
+      "expect": "CANARY_P95_WITHIN_5MS_OF_STABLE=true"
+    }
+  ]
+}
